@@ -1,2 +1,2 @@
-# rb120
+# RB120
 Launch School Class RB120
