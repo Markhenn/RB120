@@ -1,6 +1,8 @@
+# Game of rock, paper & scissors
+
 class Move
-  VALUES = %w(rock paper scissors)
-  
+  VALUES = %w(rock paper scissors).freeze
+
   def initialize(value)
     @value = value
   end
@@ -22,16 +24,9 @@ class Move
   end
 
   def >(other_move)
-    if rock?
-      return true if other_move.scissors?
-      false
-    elsif paper?
-      return true if other_move.rock?
-      false
-    elsif scissors?
-      return true if other_move.paper?
-      false
-    end
+    (rock? && other_move.scissors?) ||
+      (paper? && other_move.rock?) ||
+      (scissors? && other_move.paper?)
   end
 end
 
@@ -91,10 +86,12 @@ class RPSGame
     puts "Welcome to Rock, Paper, Scissors!"
   end
 
-  def display_winner
+  def display_moves
     puts "#{human.name} chose #{human.move}."
     puts "#{computer.name} chose #{computer.move}."
+  end
 
+  def display_winner
     if human.move > computer.move
       puts "#{human.name} wins!"
     elsif computer.move > human.move
@@ -120,12 +117,13 @@ class RPSGame
     return true if answer == 'y'
     false
   end
-  
+
   def play
     display_welcome_message
     loop do
       human.choose
       computer.choose
+      display_moves
       display_winner
       break unless play_again?
     end
