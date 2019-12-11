@@ -102,3 +102,29 @@ RPSGame class with displaying move history
 ## Computer personalities
 
 We have a list of robot names for our Computer class, but other than the name, there's really nothing different about each of them. It'd be interesting to explore how to build different personalities for each robot. For example, R2D2 can always choose "rock". Or, "Hal" can have a very high tendency to choose "scissors", and rarely "rock", but never "paper". You can come up with the rules or personalities for each robot. How would you approach a feature like this?
+
+#### Problem
+add a hash to Computer that holds the name and the personality for the robot
+The personality is an array of moves. The more often a move occurs in the array
+the more likely the robot will pick that move. No occurance means the robot will
+never pick the move
+
+#### Methods to change
+Computer picking name -> random value vom robot keys
+Computer chooses move -> Random value from robot name value array
+
+## Extra Features
+- let player decide the wins needed to win the game
+        - method
+        loop asking about a number from 1 to 10
+        validate that number as number and in range
+        set the number WINS state
+DONE - go over all input validation
+        - test them out 
+        - make sure they dont fail
+DONE - add white space to text, to make more readable
+- let the robot say hello and his name
+- wins needed to win -> add to score display
+- resolve all rubocop issues
+- push to github
+- get a review
