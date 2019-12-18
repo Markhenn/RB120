@@ -114,7 +114,7 @@ Computer picking name -> random value vom robot keys
 Computer chooses move -> Random value from robot name value array
 
 ## Extra Features
-- let player decide the wins needed to win the game
+DONE let player decide the wins needed to win the game
         - method
         loop asking about a number from 1 to 10
         validate that number as number and in range

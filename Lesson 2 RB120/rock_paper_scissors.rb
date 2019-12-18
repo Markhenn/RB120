@@ -141,7 +141,7 @@ class Human < Player
     choices = "#{Move::VALUES[0..-2].join(', ')} or #{Move::VALUES[-1]}"
     puts "Please choose a move: #{choices}:"
     loop do
-      choice = gets.chomp
+      choice = gets.chomp.downcase
       break if Move::VALUES.include? choice
       puts "Please type one of the following moves: #{choices}:"
     end
@@ -170,7 +170,7 @@ class Computer < Player
       ['lizard'] * 3,
       ['spock'] * 10
     ].flatten,
-    'Terminator' => [
+    'The Terminator' => [
       ['rock'] * 5,
       ['scissors'] * 3,
       ['lizard'] * 2,
@@ -192,6 +192,19 @@ class Computer < Player
   def set_name
     self.name = ROBOTS.keys.sample
   end
+
+  def greet
+    case name
+    when 'R2D2'
+      puts 'R2D2 says: Beeep, beep, beep, beeeeeep!'
+    when 'C3PO'
+      puts 'Hello Sir, I am C3PO and I am your opponent'
+    when 'The Terminator'
+      puts 'I am the Terminator and came to DESTROY you!'
+    when 'Wall-e'
+      puts 'Wall-e likes you and wants to play!'
+    end
+  end
 end
 
 # Game orchestration Engine
@@ -207,11 +220,14 @@ class RPSGame
   end
 
   def display_welcome_message
+    puts
     puts "Welcome to Rock, Paper, Scissors, Lizard, Spock!"
+    computer.greet
+    puts
   end
 
   def choose_rounds_to_win
-    puts 'How many wins should a player need to win the match?'
+    puts 'How many rounds should a player win to win the whole match?'
     puts 'Please give a number from 1 to 10.'
     number = nil
     loop do
@@ -225,6 +241,7 @@ class RPSGame
   def display_moves
     puts "#{human.name} chose #{human.move}."
     puts "#{computer.name} chose #{computer.move}."
+    puts
   end
 
   def show_move_history
@@ -252,8 +269,10 @@ class RPSGame
   end
 
   def display_scores
+    puts "A player needs #{Score.wins_to_end} wins to win the macht!"
     puts "#{human.name} has #{human.score} wins."
     puts "#{computer.name} has #{computer.score} wins."
+    puts
   end
 
   def player_won?
@@ -261,7 +280,9 @@ class RPSGame
   end
 
   def display_final_winner
+    puts
     puts "#{@winner.name} wins the game!"
+    puts
   end
 
   def reset_scores
@@ -285,17 +306,14 @@ class RPSGame
     human.choose
     computer.choose
     display_moves
-    puts
     determine_winner
     update_scores
     display_winner
     display_scores
-    puts
   end
 
   def play
     display_welcome_message
-    puts
     choose_rounds_to_win
     loop do
       loop do
@@ -303,9 +321,7 @@ class RPSGame
         break if player_won?
       end
       show_move_history
-      puts
       display_final_winner
-      puts
       reset_scores
       break unless play_again?
     end
@@ -315,12 +331,12 @@ class RPSGame
   private
 
   def in_range?(number)
-    integer?(number) && number.to_i > 0 && number.to_i <= 10
+    number.to_i > 0 && number.to_i <= 10
   end
 
-  def integer?(number)
-    number == number.to_i.to_s
-  end
+  # def integer?(number)
+  #   number == number.to_i.to_s
+  # end
 end
 
 RPSGame.new.play
