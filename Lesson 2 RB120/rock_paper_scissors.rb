@@ -46,71 +46,26 @@ class Score
 end
 
 class Move
-  VALUES = %w(rock paper scissors lizard spock).freeze
+  VALUES = {
+    'r'  => { wins: ['sc', 'l'], name: 'Rock' },
+    'p'  => { wins: ['r', 'sp'], name: 'Paper' },
+    'sc' => { wins: ['p', 'l'], name: 'Scissors' },
+    'l'  => { wins: ['sp', 'p'], name: 'Lizard' },
+    'sp' => { wins: ['r', 'sc'], name: 'Spock' }
+  }
 
-  def self.set(choice)
-    case choice
-    when 'rock' then Rock.new
-    when 'paper' then Paper.new
-    when 'scissors' then Scissors.new
-    when 'spock' then Spock.new
-    when 'lizard' then Lizard.new
-    end
+  attr_reader :move
+
+  def initialize(value)
+    @move = value
   end
-end
 
-class Rock < Move
   def to_s
-    "Rock"
+    VALUES[move][:name]
   end
 
   def >(other_move)
-    other_move.class == Scissors ||
-      other_move.class == Lizard
-  end
-end
-
-class Scissors < Move
-  def to_s
-    "Scissors"
-  end
-
-  def >(other_move)
-    other_move.class == Paper ||
-      other_move.class == Lizard
-  end
-end
-
-class Paper < Move
-  def to_s
-    "Paper"
-  end
-
-  def >(other_move)
-    other_move.class == Spock ||
-      other_move.class == Rock
-  end
-end
-
-class Spock < Move
-  def to_s
-    "Spock"
-  end
-
-  def >(other_move)
-    other_move.class == Scissors ||
-      other_move.class == Rock
-  end
-end
-
-class Lizard < Move
-  def to_s
-    "Lizard"
-  end
-
-  def >(other_move)
-    other_move.class == Spock ||
-      other_move.class == Paper
+    VALUES[move][:wins].include?(other_move.move)
   end
 end
 
@@ -138,22 +93,24 @@ end
 class Human < Player
   def choose
     choice = nil
-    choices = "#{Move::VALUES[0..-2].join(', ')} or #{Move::VALUES[-1]}"
-    puts "Please choose a move: #{choices}:"
+    choices = "(r)ock, (p)aper, (sc)issors, (l)izard or (sp)ock"
+    puts "To choose a move type the chars in (): #{choices}:"
     loop do
       choice = gets.chomp.downcase
-      break if Move::VALUES.include? choice
-      puts "Please type one of the following moves: #{choices}:"
+      break if Move::VALUES.keys.include? choice
+      puts "Please type chars like 'r' for rock or 'sp' for spock: #{choices}:"
     end
-    self.move = Move.set(choice)
+    self.move = Move.new(choice)
   end
+
+  private
 
   def set_name
     n = nil
     loop do
       puts "Hello! What's your name?"
       n = gets.chomp
-      break unless n.empty?
+      break unless n.empty? || n.start_with?(' ')
       puts "Please tell me your name!"
     end
     self.name = n
@@ -162,48 +119,40 @@ end
 
 class Computer < Player
   ROBOTS = {
-    'R2D2' => Move::VALUES,
-    'C3PO' => [
-      ['rock'] * 1,
-      ['paper'] * 8,
-      ['scissors'] * 3,
-      ['lizard'] * 3,
-      ['spock'] * 10
-    ].flatten,
-    'The Terminator' => [
-      ['rock'] * 5,
-      ['scissors'] * 3,
-      ['lizard'] * 2,
-      ['spock'] * 1
-    ].flatten,
-    'Wall-e' => [
-      ['rock'] * 3,
-      ['paper'] * 3,
-      ['scissors'] * 2,
-      ['lizard'] * 8,
-      ['spock'] * 5
-    ].flatten
+    'R2D2' => { moves: Move::VALUES.keys,
+                greeting: 'R2D2 says: Beeep, beep, beep, beeeeeep!' },
+    'C3PO' => { moves: [['r'] * 1,
+                        ['p'] * 8,
+                        ['sc'] * 3,
+                        ['l'] * 3,
+                        ['sp'] * 10].flatten,
+                greeting: 'Hello Sir, I am C3PO and I am your opponent' },
+    'The Terminator' => { moves: [['r'] * 5,
+                                  ['sc'] * 3,
+                                  ['l'] * 2,
+                                  ['sp'] * 1].flatten,
+                          greeting: 'I am the Terminator and came '\
+                                    'to DESTROY you!' },
+    'Wall-e' => { moves: [['r'] * 3,
+                          ['p'] * 3,
+                          ['sc'] * 2,
+                          ['l'] * 8,
+                          ['sp'] * 5].flatten,
+                  greeting: 'Wall-e likes you and wants to play!' }
   }
 
   def choose
-    self.move = Move.set(ROBOTS[name].sample)
-  end
-
-  def set_name
-    self.name = ROBOTS.keys.sample
+    self.move = Move.new(ROBOTS[name][:moves].sample)
   end
 
   def greet
-    case name
-    when 'R2D2'
-      puts 'R2D2 says: Beeep, beep, beep, beeeeeep!'
-    when 'C3PO'
-      puts 'Hello Sir, I am C3PO and I am your opponent'
-    when 'The Terminator'
-      puts 'I am the Terminator and came to DESTROY you!'
-    when 'Wall-e'
-      puts 'Wall-e likes you and wants to play!'
-    end
+    puts ROBOTS[name][:greeting]
+  end
+
+  private
+
+  def set_name
+    self.name = ROBOTS.keys.sample
   end
 end
 
@@ -218,6 +167,24 @@ class RPSGame
     @winner = nil
     @wins = nil
   end
+
+  def play
+    display_welcome_message
+    choose_rounds_to_win
+    loop do
+      loop do
+        play_a_round
+        break if player_won?
+      end
+      show_move_history
+      display_final_winner
+      reset_scores
+      break unless play_again?
+    end
+    display_goodbye_message
+  end
+
+  private
 
   def display_welcome_message
     puts
@@ -239,6 +206,7 @@ class RPSGame
   end
 
   def display_moves
+    system('clear') || system('cls')
     puts "#{human.name} chose #{human.move}."
     puts "#{computer.name} chose #{computer.move}."
     puts
@@ -260,16 +228,16 @@ class RPSGame
   end
 
   def update_scores
-    @winner.score.add_win unless @winner.nil?
+    @winner.score.add_win if @winner
   end
 
   def display_winner
-    return puts "It's a tie" if @winner.nil?
-    puts "#{@winner.name} wins!"
+    winner = @winner ? "#{@winner.name} wins!" : "It's a tie!"
+    puts winner
   end
 
   def display_scores
-    puts "A player needs #{Score.wins_to_end} wins to win the macht!"
+    puts "A player needs #{Score.wins_to_end} wins to win the match!"
     puts "#{human.name} has #{human.score} wins."
     puts "#{computer.name} has #{computer.score} wins."
     puts
@@ -297,9 +265,9 @@ class RPSGame
   def play_again?
     puts "Type y to play #{computer.name} again, anything else to end the game!"
     answer = gets.chomp.downcase
+    system('clear') || system('cls')
 
-    return true if answer == 'y'
-    false
+    answer == 'y'
   end
 
   def play_a_round
@@ -312,31 +280,9 @@ class RPSGame
     display_scores
   end
 
-  def play
-    display_welcome_message
-    choose_rounds_to_win
-    loop do
-      loop do
-        play_a_round
-        break if player_won?
-      end
-      show_move_history
-      display_final_winner
-      reset_scores
-      break unless play_again?
-    end
-    display_goodbye_message
-  end
-
-  private
-
   def in_range?(number)
     number.to_i > 0 && number.to_i <= 10
   end
-
-  # def integer?(number)
-  #   number == number.to_i.to_s
-  # end
 end
 
 RPSGame.new.play
