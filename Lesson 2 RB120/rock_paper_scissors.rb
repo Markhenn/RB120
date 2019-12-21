@@ -118,41 +118,68 @@ class Human < Player
 end
 
 class Computer < Player
-  ROBOTS = {
-    'R2D2' => { moves: Move::VALUES.keys,
-                greeting: 'R2D2 says: Beeep, beep, beep, beeeeeep!' },
-    'C3PO' => { moves: [['r'] * 1,
-                        ['p'] * 8,
-                        ['sc'] * 3,
-                        ['l'] * 3,
-                        ['sp'] * 10].flatten,
-                greeting: 'Hello Sir, I am C3PO and I am your opponent' },
-    'The Terminator' => { moves: [['r'] * 5,
-                                  ['sc'] * 3,
-                                  ['l'] * 2,
-                                  ['sp'] * 1].flatten,
-                          greeting: 'I am the Terminator and came '\
-                                    'to DESTROY you!' },
-    'Wall-e' => { moves: [['r'] * 3,
-                          ['p'] * 3,
-                          ['sc'] * 2,
-                          ['l'] * 8,
-                          ['sp'] * 5].flatten,
-                  greeting: 'Wall-e likes you and wants to play!' }
-  }
-
   def choose
-    self.move = Move.new(ROBOTS[name][:moves].sample)
+    self.move = Move.new(moves.sample)
   end
 
   def greet
-    puts ROBOTS[name][:greeting]
+    puts self
+  end
+end
+
+class R2D2 < Computer
+  def moves
+    Move::VALUES.keys
   end
 
-  private
+  def set_name
+    self.name = 'R2D2'
+  end
+
+  def to_s
+    'R2D2 says: Beeep, beep, beep, beeeeeep!'
+  end
+end
+
+class C3PO < Computer
+  def moves
+    [['r'] * 1, ['p'] * 8, ['sc'] * 3, ['l'] * 3, ['sp'] * 10].flatten
+  end
 
   def set_name
-    self.name = ROBOTS.keys.sample
+    self.name = 'C3PO'
+  end
+
+  def to_s
+    'Hello Sir, I am C3PO and I am your opponent'
+  end
+end
+
+class Terminator < Computer
+  def moves
+    [['r'] * 5, ['sc'] * 3, ['l'] * 2, ['sp'] * 1].flatten
+  end
+
+  def set_name
+    self.name = 'The Terminator'
+  end
+
+  def to_s
+    'I am the Terminator and came to DESTROY you!'
+  end
+end
+
+class WallE < Computer
+  def moves
+    [['r'] * 3, ['p'] * 3, ['sc'] * 2, ['l'] * 8, ['sp'] * 5].flatten
+  end
+
+  def set_name
+    self.name = 'Wall-e'
+  end
+
+  def to_s
+    'Wall-e likes you and wants to play!'
   end
 end
 
@@ -163,7 +190,7 @@ class RPSGame
 
   def initialize
     @human = Human.new
-    @computer = Computer.new
+    @computer = [R2D2.new, C3PO.new, Terminator.new, WallE.new].sample
     @winner = nil
     @wins = nil
   end
