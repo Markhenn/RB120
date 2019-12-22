@@ -128,6 +128,8 @@ class Computer < Player
 end
 
 class R2D2 < Computer
+  private
+
   def moves
     Move::VALUES.keys
   end
@@ -142,6 +144,8 @@ class R2D2 < Computer
 end
 
 class C3PO < Computer
+  private
+
   def moves
     [['r'] * 1, ['p'] * 8, ['sc'] * 3, ['l'] * 3, ['sp'] * 10].flatten
   end
@@ -156,6 +160,8 @@ class C3PO < Computer
 end
 
 class Terminator < Computer
+  private
+
   def moves
     [['r'] * 5, ['sc'] * 3, ['l'] * 2, ['sp'] * 1].flatten
   end
@@ -170,6 +176,8 @@ class Terminator < Computer
 end
 
 class WallE < Computer
+  private
+
   def moves
     [['r'] * 3, ['p'] * 3, ['sc'] * 2, ['l'] * 8, ['sp'] * 5].flatten
   end
