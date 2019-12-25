@@ -131,17 +131,6 @@ DONE get a review
 
 ## Input from Code review
 ### Source Code
-
-The interface of your classes could be better defined. It's better to only make public methods that need to be public - everything else should be private or protected. For example, in the RPSGame class the only method that needs to be public is the play method.
-In the update_scores method, you could rely on truthiness and write @winner.score.add_win if @winner. I personally find this easier to read, but I'll let you decide!
-In the display_winner method, I find that a conditional statement (instead of the explicit return) would make your logic clearer:
-if @winner
-  puts "#{@winner.name} wins!"
-else
-  puts "It's a tie"
-end
-This could also be refactored using the ternary operator.
-
 Regarding your design choices, I find it interesting that you chose to implement subclasses for the Move class, but not for the Computer class. It's certainly a valid choice and I simply want to invite you to consider the tradeoffs:
 
 In the case of the Move subclasses, the logic for which move wins could easily have been represented otherwise and more succinctly, as a hash for example. It might be worth it to look at a few submitted solutions to compare different approaches.
