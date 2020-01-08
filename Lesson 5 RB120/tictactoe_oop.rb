@@ -101,7 +101,7 @@ class TTTGame
     @board = Board.new
     @human = Player.new(HUMAN_MARKER)
     @computer = Player.new(COMPUTER_MARKER)
-    @first_to_move = @human
+    @first_to_move = @computer
     @current_player = @first_to_move
   end
 
@@ -113,7 +113,7 @@ class TTTGame
         current_player_moves
         break if board.someone_won? || board.full?
 
-        clear_screen_and_display_board if first_mover_turn?
+        clear_screen_and_display_board if human_turn?
       end
       display_result
       break unless play_again?
@@ -126,10 +126,6 @@ class TTTGame
   private
 
   attr_reader :board, :human, :computer
-
-  def first_mover_turn?
-    @current_player == @first_to_move
-  end
 
   def human_turn?
     @current_player == @human
