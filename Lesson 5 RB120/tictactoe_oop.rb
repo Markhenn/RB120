@@ -87,27 +87,67 @@ class Square
 end
 
 class Player
-  attr_reader :marker
+  attr_reader :marker, :name
 
-  def initialize(marker)
-    @marker = marker
+  def initialize
+    @name = set_name
+  end
+end
+
+class Human < Player
+  def pick_marker(markers)
+    answer = nil
+    loop do
+      puts "Please pick a single common letter from the alphabet as marker (a-z)"
+      answer = gets.chomp.upcase
+      break if markers.include? answer
+      puts "Sorry invalid choice!"
+    end
+
+    @marker = answer
+  end
+
+  private
+
+  def set_name
+    answer = nil
+    loop do
+      puts "Hey what is your name?"
+      answer = gets.chomp
+      break answer if answer.size > 1
+      puts "Sorry that is too short, at least 2 letters please!"
+    end
+  end
+end
+
+class Computer < Player
+  COMPUTERS = %w(R2D2 C3PO Wall-E)
+  def pick_marker(markers)
+    @marker = markers.sample
+  end
+
+  private
+
+  def set_name
+    COMPUTERS.sample
   end
 end
 
 class TTTGame
-  HUMAN_MARKER = 'X'
-  COMPUTER_MARKER = 'O'
+
+  MARKERS = ("A".."Z").to_a
 
   def initialize
     @board = Board.new
-    @human = Player.new(HUMAN_MARKER)
-    @computer = Player.new(COMPUTER_MARKER)
-    @first_to_move = @computer
+    @human = Human.new
+    @computer = Computer.new
+    @first_to_move = @human
     @current_player = @first_to_move
   end
 
   def play
     display_welcome_message
+    set_markers
     loop do
       display_board
       loop do
@@ -127,6 +167,12 @@ class TTTGame
   private
 
   attr_reader :board, :human, :computer
+
+  def set_markers
+    human.pick_marker(MARKERS)
+    possible_markers = MARKERS.reject { |mk| mk == human.marker }
+    computer.pick_marker(possible_markers)
+  end
 
   def human_turn?
     @current_player == @human
@@ -192,7 +238,7 @@ class TTTGame
   end
 
   def display_board
-    puts "You're a #{human.marker}, Computer is a #{computer.marker}"
+    puts "You're #{human.marker}, Computer is #{computer.marker}"
     puts
     board.draw
     puts
@@ -204,7 +250,9 @@ class TTTGame
   end
 
   def display_welcome_message
-    puts 'Welcome to Tic Tac Toe!'
+    puts
+    puts "Hello #{human.name} and welcome to Tic Tac Toe!"
+    puts "My name is #{computer.name} and I will be your opponent"
     puts
   end
 
