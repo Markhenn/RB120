@@ -26,6 +26,7 @@ class Board
     !!winning_marker
   end
 
+  # rubocop:disable Metrics/AbcSize
   def draw
     puts "     |     |"
     puts "  #{@squares[1]}  |  #{@squares[2]}  |  #{@squares[3]}"
@@ -38,8 +39,8 @@ class Board
     puts "     |     |"
     puts "  #{@squares[7]}  |  #{@squares[8]}  |  #{@squares[9]}"
     puts "     |     |"
-    puts
   end
+  # rubocop:enable Metrics/AbcSize
 
   def reset
     (1..9).each { |key| @squares[key] = Square.new }
@@ -135,7 +136,7 @@ class TTTGame
     if human_turn?
       human_moves
       @current_player = @computer
-    elsif
+    else
       computer_moves
       @current_player = @human
     end
