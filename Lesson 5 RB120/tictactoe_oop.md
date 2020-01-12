@@ -1,39 +1,37 @@
 Tic Tac Toe is a 2-player board game played on a 3x3 grid. Players take turns
 marking a square. The first player to mark 3 squares in a row wins.
 
-# Player can pick any marker
-- The player can pick any marker at the beginning of the game
-- this means he decides what sign his marker can have
+# Improved join
 
-- edge cases:
-  - only let a capitalized letter count
-  - no extra letter or numbers
-  - only 1 letter
-  - can input upper or lower case
-  - cant input no letter
-  - Should he choose X the computer will choose O
+Currently, we're using the Array#join method, which can only insert a delimiter between the array elements, and isn't smart enough to display a joining word for the last element.
 
-## Test cases
-- test with the life game
+Write a method called joinor that will produce the following result:
+
+joinor([1, 2])                   # => "1 or 2"
+joinor([1, 2, 3])                # => "1, 2, or 3"
+joinor([1, 2, 3], '; ')          # => "1; 2; or 3"
+joinor([1, 2, 3], ', ', 'and')   # => "1, 2, and 3"
+Then, use this method in the TTT game when prompting the user to mark a square.
+
+## Problem
+Join the numbers in a way that is better to read for a human
+Input: array
+Output: string
+
+when size of array is two join on 'or' or parameter 3
+when size bigger than join on ',' or param 2 for all but the last two which use
+the above
+
+## Test Cases
+use game
 
 ## Data Structure
-- add to Player class
-- a marker array with all markers -> make it a class variable
-- subclasses for computer and human
-- a method called pick_marker for each sublcass
+add method to TTTGame class -> add to private
+be called by human_moves
 
 ## Algorithm
-- When game starts the human can pick the marker
-- call it pick markers in the Player initialize method for @marker
-  - pick marker works differently for the computer and the human
-  - if human.marker is X -> set computer marker to O
-  
-
-pick_marker
-- intro text marker needs to be a letter from a-z
-- get letter and upcase
-- break if it is a single letter
-- set letter as marker
-- delete letter from markers array
-
-- computer picks a random marker from the remaind markers array
+Take the last two items and join them with needed word
+  add a space after and before the joining word
+if size more than 2
+Take the first items until the last two and join them on the ','
+return a string with first part and second part joined by ','

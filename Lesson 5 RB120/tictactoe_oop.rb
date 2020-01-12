@@ -5,6 +5,9 @@ class Board
                    [1, 4, 7], [2, 5, 8], [3, 6, 9],
                    [1, 5, 9], [3, 5, 7]]
 
+  DELIMITER = ','
+  END_DELIM = 'or'
+
   def initialize
     @squares = {}
     reset
@@ -16,6 +19,10 @@ class Board
 
   def unmarked_squares
     @squares.select { |_, sq| sq.unmarked? }.keys
+  end
+
+  def join_unmarked_squares
+    joinor(self.unmarked_squares)
   end
 
   def full?
@@ -65,6 +72,14 @@ class Board
 
   def marker_at(square)
     @squares[square].marker
+  end
+
+  def joinor(array, del=DELIMITER, ending=END_DELIM)
+    if array.size > 1
+      first_part = array[0..-2].join("#{del} ")
+      return "#{first_part} #{ending} #{array[-1]}"
+    end
+    array.first
   end
 end
 
@@ -201,7 +216,7 @@ class TTTGame
   def human_moves
     square = nil
     loop do
-      puts "Please choose a square from #{board.unmarked_squares.join(', ')}:"
+      puts "Please choose a square from #{board.join_unmarked_squares}:"
       square = gets.chomp.to_i
       break if board.unmarked_squares.include?(square)
       puts "Sorry! Invalid choice"
@@ -259,6 +274,9 @@ class TTTGame
   def display_goodbye_message
     puts 'Thank you for playing Tic Tac Toe! Goodbye!'
   end
+
+  private
+
 end
 
 game = TTTGame.new
