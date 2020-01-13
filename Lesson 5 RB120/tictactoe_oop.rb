@@ -238,7 +238,8 @@ class TTTGame
 
   private
 
-  attr_reader :board, :human, :computer, :score
+  attr_reader :board, :human, :computer, :score, :first_to_move
+  attr_accessor :current_player
 
   def play_a_round
     loop do
@@ -305,16 +306,16 @@ class TTTGame
   end
 
   def human_turn?
-    @current_player == @human
+    current_player == human
   end
 
   def current_player_moves
     if human_turn?
       human_moves
-      @current_player = @computer
+      self.current_player = computer
     else
       computer_moves
-      @current_player = @human
+      self.current_player = human
     end
   end
 
@@ -324,10 +325,10 @@ class TTTGame
   end
 
   def change_starting_player
-    if @first_to_move == @human
-      @first_to_move = @computer
+    if first_to_move == human
+      first_to_move = computer
     else
-      @first_to_move = @human
+      first_to_move = human
     end
   end
 
