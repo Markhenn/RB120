@@ -62,6 +62,17 @@ class Board
     nil
   end
 
+  def copy
+    new_board = Board.new
+    squares.each { |sq, mk| new_board.squares[sq] = mk.clone }
+    # puts squares[1].equal?(new_board.squares[1])
+    new_board
+  end
+
+  protected
+
+  attr_reader :squares
+
   private
 
   def three_in_a_line(line)
@@ -137,8 +148,12 @@ end
 
 class Computer < Player
   COMPUTERS = %w(R2D2 C3PO Wall-E)
+
+  attr_accessor :easy
+
   def pick_marker(markers)
     @marker = markers.sample
+    @easy = false
   end
 
   private
@@ -356,8 +371,63 @@ class TTTGame
   end
 
   def computer_moves
-    square = board.unmarked_squares.sample
-    board[square] = computer.marker
+    optimal_square = if computer.easy
+                       board.unmarked_squares.sample
+                     else
+                       minimax(board, 0, true)
+                     end
+
+    board[optimal_square] = computer.marker
+  end
+
+  # rubocop:disable Metrics/MethodLength
+  def minimax(brd, depth, computer_turn)
+    if brd.full? || brd.someone_won?
+      return terminal_result(brd)
+    end
+
+    minimax_values = brd.unmarked_squares.each_with_object({}) do |square, hash|
+      new_brd = brd.copy
+
+      if computer_turn
+        new_brd[square] = computer.marker
+        hash[square] = minimax(new_brd, depth + 1, false)
+      else
+        new_brd[square] = human.marker
+        hash[square] = minimax(new_brd, depth + 1, true)
+      end
+    end
+
+    if depth == 0
+      return optimal_square(minimax_values)
+    end
+
+    node_result(minimax_values, computer_turn)
+  end
+  # rubocop:enable Metrics/MethodLength,
+
+  def optimal_square(brd_values)
+    max_value = brd_values.values.max
+    top_squares = brd_values.each_with_object([]) do |(sq, v), ary|
+      ary << sq if v == max_value
+    end
+    top_squares.sample
+  end
+
+  def node_result(brd_values, computer_turn)
+    if computer_turn
+      brd_values.values.max
+    else
+      brd_values.values.min
+    end
+  end
+
+  def terminal_result(brd)
+    case brd.winning_marker
+    when computer.marker then  1
+    when human.marker   then -1
+    else 0
+    end
   end
 
   def display_result(message)
