@@ -148,6 +148,65 @@ class Computer < Player
   end
 end
 
+class Score
+  def initialize
+    @rounds_to_win = 2
+    @round_winner = reset
+  end
+
+  def reset
+    @round_winner = Array.new
+  end
+
+  def display_round
+    puts "Round #{@round_winner.size + 1}"
+  end
+
+  def display_round_stats
+    puts
+    puts "#{@round_winner.size} rounds have been played"
+    puts "#{@rounds_to_win} wins needed to win the game"
+    puts
+    display_win_counts
+    puts
+  end
+
+  def game_over?
+    @round_winner.count(@round_winner[-1]) >= @rounds_to_win
+  end
+
+  def <<(winner)
+    @round_winner << winner
+  end
+
+  def set_rounds_to_win
+    answer = nil
+    loop do
+      puts "How many rounds should a player needs to win?"
+      puts "Choose from 1 and 10 rounds"
+      answer = gets.chomp.to_i
+      break if (1..10).to_a.include? answer
+      puts "Sorry, invalid answer! Type a number from 1 and 10"
+    end
+    @rounds_to_win = answer
+  end
+
+  private
+
+  def display_win_counts
+    winner_hsh = Hash.new(0)
+    @round_winner.each do |winner|
+      next if winner.nil?
+
+      winner_hsh[winner] += 1
+    end
+
+    winner_hsh.each do |winner, count|
+      puts "#{winner.name} won #{count} rounds"
+    end
+  end
+end
+
 class TTTGame
 
   MARKERS = ("A".."Z").to_a
@@ -158,13 +217,11 @@ class TTTGame
     @computer = Computer.new
     @first_to_move = @human
     @current_player = @first_to_move
-    @rounds_to_win = 2
-    @round_winner = Array.new
+    @score = Score.new
   end
 
   def play
-    display_welcome_message
-    set_markers
+    start_game
     loop do
       display_board
       loop do
@@ -182,7 +239,7 @@ class TTTGame
 
   private
 
-  attr_reader :board, :human, :computer
+  attr_reader :board, :human, :computer, :score
 
   def play_a_round
     loop do
@@ -198,6 +255,14 @@ class TTTGame
     wait_for_player_to_continue unless game_is_won?
   end
 
+  def start_game
+    display_welcome_message
+    set_markers
+    puts
+    score.set_rounds_to_win
+    puts
+  end
+
   def wait_for_player_to_continue
     puts "Type any key to continue..."
     gets
@@ -205,21 +270,33 @@ class TTTGame
   end
 
   def game_is_won?
-    @round_winner.count(board.winning_marker) >= @rounds_to_win
+    score.game_over?
   end
 
   def store_winner
-    @round_winner << board.winning_marker
+    score << winning_player
+  end
+
+  def winning_player
+    if human_won?
+      human
+    elsif computer_won?
+      computer
+    else
+      nil
+    end
+  end
+
+  def human_won?
+    human.marker == board.winning_marker
+  end
+
+  def computer_won?
+    computer.marker == board.winning_marker
   end
 
   def display_round_stats
-    puts
-    puts "#{@round_winner.size} rounds have been played"
-    puts "#{@rounds_to_win} wins needed to win the game"
-    puts
-    puts "#{human.name} won #{@round_winner.count(human.marker)} rounds"
-    puts "#{computer.name} won #{@round_winner.count(computer.marker)} rounds"
-    puts
+    score.display_round_stats
   end
 
   def set_markers
@@ -257,7 +334,7 @@ class TTTGame
 
   def reset_game
     reset_round
-    @round_winner = Array.new
+    score.reset
   end
 
   def reset_round
@@ -284,11 +361,16 @@ class TTTGame
   end
 
   def display_result(message)
-    case board.winning_marker
-    when human.marker then puts "#{human.name} #{message}"
-    when computer.marker then puts "#{computer.name} #{message}"
-    else puts 'It is a tie!'
+    if human_won? || computer_won?
+      puts "#{winning_player.name} #{message}"
+    else
+      puts 'It is a tie!'
     end
+    # case board.winning_marker
+    # when human.marker then puts "#{human.name} #{message}"
+    # when computer.marker then puts "#{computer.name} #{message}"
+    # else puts 'It is a tie!'
+    # end
   end
 
   def display_game_result
@@ -315,7 +397,7 @@ class TTTGame
   end
 
   def display_board
-    puts "Round #{@round_winner.size + 1}"
+    score.display_round
     puts "#{human.name} is #{human.marker}, #{computer.name} is #{computer.marker}"
     puts
     board.draw

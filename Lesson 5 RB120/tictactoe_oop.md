@@ -45,7 +45,15 @@ display round stats
 > - display wins of each player
 
 ## Extras
-- make the end game result message more beatiful
-- skip wait_for_player if game is over
+> - make the end game result message more beatiful
+> - skip wait_for_player if game is over
 - create Score class and put everything needed to keep score in there
   - round_winner, wins needed, game over? etc
+  - create a winner method in TTTGame that returns the winning object
+  - store this object in @round_winner in Score
+  - create methods:
+    - reset
+    - display round
+    - display round stats
+    - game over?
+    - <<() -> to store the round winner
