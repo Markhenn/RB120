@@ -113,7 +113,7 @@ class Human < Player
   def pick_marker(markers)
     answer = nil
     loop do
-      puts "Please pick a single common letter from the alphabet as marker (A-Z)"
+      puts "Please pick a single letter from the alphabet as your marker (A-Z)"
       answer = gets.chomp.upcase
       break if markers.include? answer
       puts "Sorry invalid choice!"
@@ -150,21 +150,21 @@ end
 
 class Score
   def initialize
-    @rounds_to_win = 2
+    @rounds_to_win = nil
     @round_winner = reset
   end
 
   def reset
-    @round_winner = Array.new
+    @round_winner = Hash.new(0)
   end
 
   def display_round
-    puts "Round #{@round_winner.size + 1}"
+    puts "Round #{rounds_played + 1}"
   end
 
   def display_round_stats
     puts
-    puts "#{@round_winner.size} rounds have been played"
+    puts "#{rounds_played} rounds have been played"
     puts "#{@rounds_to_win} wins needed to win the game"
     puts
     display_win_counts
@@ -172,17 +172,17 @@ class Score
   end
 
   def game_over?
-    @round_winner.count(@round_winner[-1]) >= @rounds_to_win
+    @round_winner.values.any? { |wins| wins >= @rounds_to_win }
   end
 
   def <<(winner)
-    @round_winner << winner
+    @round_winner[winner] += 1
   end
 
   def set_rounds_to_win
     answer = nil
     loop do
-      puts "How many rounds should a player needs to win?"
+      puts "How many wins or ties should end the game?"
       puts "Choose from 1 and 10 rounds"
       answer = gets.chomp.to_i
       break if (1..10).to_a.include? answer
@@ -194,16 +194,15 @@ class Score
   private
 
   def display_win_counts
-    winner_hsh = Hash.new(0)
-    @round_winner.each do |winner|
+    @round_winner.each do |winner, count| 
       next if winner.nil?
-
-      winner_hsh[winner] += 1
-    end
-
-    winner_hsh.each do |winner, count|
       puts "#{winner.name} won #{count} rounds"
     end
+  end
+
+  def rounds_played
+    return 0 if @round_winner.empty?
+    @round_winner.values.reduce(:+)
   end
 end
 
@@ -366,11 +365,6 @@ class TTTGame
     else
       puts 'It is a tie!'
     end
-    # case board.winning_marker
-    # when human.marker then puts "#{human.name} #{message}"
-    # when computer.marker then puts "#{computer.name} #{message}"
-    # else puts 'It is a tie!'
-    # end
   end
 
   def display_game_result
