@@ -147,19 +147,38 @@ class Human < Player
 end
 
 class Computer < Player
-  COMPUTERS = %w(R2D2 C3PO Wall-E)
-
   attr_accessor :easy
 
   def pick_marker(markers)
     @marker = markers.sample
-    @easy = false
   end
 
   private
 
   def set_name
-    COMPUTERS.sample
+    self
+  end
+end
+
+class R2D2 < Computer
+  def initialize
+    super
+    @easy = false
+  end
+
+  def to_s
+    'R2D2'
+  end
+end
+
+class C3PO < Computer
+  def initialize
+    super
+    @easy = true
+  end
+
+  def to_s
+    'C3PO'
   end
 end
 
@@ -228,7 +247,7 @@ class TTTGame
   def initialize
     @board = Board.new
     @human = Human.new
-    @computer = Computer.new
+    # @computer = Computer.new
     @first_to_move = @human
     @current_player = @first_to_move
     @score = Score.new
@@ -271,11 +290,30 @@ class TTTGame
   end
 
   def start_game
+    puts
+    set_opponent
     display_welcome_message
     set_markers
     puts
     score.set_rounds_to_win
     puts
+  end
+
+  def set_opponent
+    answer = nil
+    loop do
+      puts "Who shall be your opponent?"
+      puts "Pick one of the following by typing the first letter of his name:"
+      puts "1. #{R2D2} the unbeatable master"
+      puts "2. #{C3PO} an easy challenge"
+      answer = gets.chomp
+      break if %w(R C 1 2 R2D2 C3PO R2 3PO).include? answer
+
+      puts "Sorry invalid input!"
+    end
+
+    @computer = R2D2.new if %w(R 1 R2D2 R2).include? answer
+    @computer = C3PO.new if %w(C 2 C3PO 3PO).include? answer
   end
 
   def wait_for_player_to_continue
