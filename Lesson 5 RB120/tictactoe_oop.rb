@@ -147,8 +147,6 @@ class Human < Player
 end
 
 class Computer < Player
-  attr_accessor :easy
-
   def pick_marker(markers)
     @marker = markers.sample
   end
@@ -156,29 +154,37 @@ class Computer < Player
   private
 
   def set_name
-    self
+    self.class
   end
 end
 
 class R2D2 < Computer
-  def initialize
-    super
-    @easy = false
+  def move(board)
+    board.unmarked_squares.sample
   end
 
-  def to_s
-    'R2D2'
+  def self.message
+    'the unbeatable! Beep Beeeeep!'
   end
 end
 
 class C3PO < Computer
-  def initialize
-    super
-    @easy = true
+  def move(board)
+    board.unmarked_squares.sample
   end
 
-  def to_s
-    'C3PO'
+  def self.message
+    'somewhat a challenge.'
+  end
+end
+
+class WallE < Computer
+  def move(board)
+    board.unmarked_squares.sample
+  end
+
+  def self.message
+    'just likes to play.'
   end
 end
 
@@ -247,7 +253,6 @@ class TTTGame
   def initialize
     @board = Board.new
     @human = Human.new
-    # @computer = Computer.new
     @first_to_move = @human
     @current_player = @first_to_move
     @score = Score.new
@@ -301,11 +306,13 @@ class TTTGame
 
   def set_opponent
     answer = nil
+    puts "Who shall be your opponent?"
+
     loop do
-      puts "Who shall be your opponent?"
       puts "Pick one of the following by typing the first letter of his name:"
-      puts "1. #{R2D2} the unbeatable master"
-      puts "2. #{C3PO} an easy challenge"
+      puts "1. #{R2D2} #{R2D2.message}"
+      puts "2. #{C3PO} #{C3PO.message}"
+      puts "3. #{WallE} #{WallE.message}"
       answer = gets.chomp
       break if %w(R C 1 2 R2D2 C3PO R2 3PO).include? answer
 
@@ -409,11 +416,7 @@ class TTTGame
   end
 
   def computer_moves
-    optimal_square = if computer.easy
-                       board.unmarked_squares.sample
-                     else
-                       minimax(board, 0, true)
-                     end
+    optimal_square = computer.move(board)
 
     board[optimal_square] = computer.marker
   end
