@@ -226,9 +226,9 @@ class R2D2 < Computer
   def move(brd)
     self.board = brd
     self.human_marker = determine_human_marker
-    optimal_square = minimax(board, 0, true)
+    optimal_square = minimax(board, 0, computer_turn: true)
     p optimal_square
-    require 'pry'; binding.pry
+    board[optimal_square] = marker
   end
 
   def self.message
@@ -236,7 +236,7 @@ class R2D2 < Computer
   end
 
   # rubocop:disable Metrics/MethodLength
-  def minimax(brd, depth, computer_turn)
+  def minimax(brd, depth, computer_turn: true)
     if brd.full? || brd.someone_won?
       return terminal_result(brd)
     end
@@ -244,12 +244,13 @@ class R2D2 < Computer
     minimax_values = brd.unmarked_square_keys.each_with_object({}) do |square, hash|
       new_brd = brd.copy
 
+      require 'pry'; binding.pry
       if computer_turn
         new_brd[square] = marker
-        hash[square] = minimax(new_brd, depth + 1, false)
+        hash[square] = minimax(new_brd, depth + 1, computer_turn: false)
       else
-        new_brd[square] = human.marker
-        hash[square] = minimax(new_brd, depth + 1, true)
+        new_brd[square] = human_marker
+        hash[square] = minimax(new_brd, depth + 1, computer_turn: true)
       end
     end
 
@@ -261,32 +262,26 @@ class R2D2 < Computer
   end
   # rubocop:enable Metrics/MethodLength,
 
-  def find_human_marker
-    # go over board and select the marker that is not initial and not computer
-    # if there is non, set you own
-    board.ma
-  end
-
-  def optimal_square(brd_values)
-    max_value = brd_values.values.max
-    top_squares = brd_values.each_with_object([]) do |(sq, v), ary|
+  def optimal_square(minimax_values)
+    max_value = minimax_values.values.max
+    top_squares = minimax_values.each_with_object([]) do |(sq, v), ary|
       ary << sq if v == max_value
     end
     top_squares.sample
   end
 
-  def node_result(brd_values, computer_turn)
+  def node_result(minimax_values, computer_turn)
     if computer_turn
-      brd_values.values.max
+      minimax_values.values.max
     else
-      brd_values.values.min
+      minimax_values.values.min
     end
   end
 
   def terminal_result(brd)
     case brd.winning_marker
-    when computer.marker then  1
-    when human.marker   then -1
+    when marker then  1
+    when human_marker   then -1
     else 0
     end
   end
