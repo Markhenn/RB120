@@ -8,25 +8,48 @@ class Board
   DELIMITER = ','
   END_DELIM = 'or'
 
+  WIDTH = 3
+
+  attr_reader :width
+
   def initialize
     @squares = {}
     reset
+    @width = WIDTH
   end
 
-  def []=(square, marker)
-    @squares[square].marker = marker
+  def []=(square_num, marker)
+    squares[square_num].marker = marker
   end
 
-  def unmarked_squares
-    @squares.select { |_, sq| sq.unmarked? }.keys
+  def middle_square
+    middle_point = (width ** 2).to_f / 2
+    middle_point.ceil
   end
 
-  def join_unmarked_squares
-    joinor(self.unmarked_squares)
+  def get_squares(unmarked: true)
+    if unmarked
+      squares.select { |_, sq| sq.unmarked? }
+    else
+      squares.reject { |_, sq| sq.unmarked? }
+    end
+  end
+
+  def unmarked_random_square
+    unmarked_square_keys.sample
+  end
+
+  def unmarked_square_keys
+    get_squares(unmarked: true).keys
+  end
+
+
+  def join_unmarked_square_keys
+    joinor(self.unmarked_square_keys)
   end
 
   def full?
-    unmarked_squares.empty?
+    get_squares(unmarked: true).empty?
   end
 
   def someone_won?
@@ -36,36 +59,49 @@ class Board
   # rubocop:disable Metrics/AbcSize
   def draw
     puts "     |     |"
-    puts "  #{@squares[1]}  |  #{@squares[2]}  |  #{@squares[3]}"
+    puts "  #{squares[1]}  |  #{squares[2]}  |  #{squares[3]}"
     puts "     |     |"
     puts " ----+-----+-----"
     puts "     |     |"
-    puts "  #{@squares[4]}  |  #{@squares[5]}  |  #{@squares[6]}"
+    puts "  #{squares[4]}  |  #{squares[5]}  |  #{squares[6]}"
     puts "     |     |"
     puts " ----+-----+-----"
     puts "     |     |"
-    puts "  #{@squares[7]}  |  #{@squares[8]}  |  #{@squares[9]}"
+    puts "  #{squares[7]}  |  #{squares[8]}  |  #{squares[9]}"
     puts "     |     |"
   end
   # rubocop:enable Metrics/AbcSize
 
   def reset
-    (1..9).each { |key| @squares[key] = Square.new }
+    (1..9).each { |key| squares[key] = Square.new }
   end
 
   def winning_marker
     WINNING_LINES.each do |line|
-      next if @squares[line.first].unmarked?
+      next if squares[line.first].unmarked?
 
       return marker_at(line.first) if three_in_a_line(line)
     end
     nil
   end
 
+  def squares_in_line_back_up
+    WINNING_LINES.map do |line|
+      squares.values_at(*line)
+    end
+  end
+
+  def squares_in_line
+    WINNING_LINES.map do |line|
+      squares.select do |num, _|
+        line.include? num
+      end
+    end
+  end
+
   def copy
     new_board = Board.new
     squares.each { |sq, mk| new_board.squares[sq] = mk.clone }
-    # puts squares[1].equal?(new_board.squares[1])
     new_board
   end
 
@@ -75,14 +111,16 @@ class Board
 
   private
 
+  attr_writer :width
+
   def three_in_a_line(line)
-    @squares.values_at(*line[1..-1]).map(&:marker).all? do |mk|
+    squares.values_at(*line[1..-1]).map(&:marker).all? do |mk|
       mk == marker_at(line.first)
     end
   end
 
   def marker_at(square)
-    @squares[square].marker
+    squares[square].marker
   end
 
   def joinor(array, del=DELIMITER, ending=END_DELIM)
@@ -133,6 +171,18 @@ class Human < Player
     @marker = answer
   end
 
+  def move(board)
+    square = nil
+    loop do
+      puts "Please choose a square from #{board.join_unmarked_square_keys}:"
+      square = gets.chomp.to_i
+      break if board.unmarked_square_keys.include?(square)
+      puts "Sorry! Invalid choice"
+    end
+
+    board[square] = marker
+  end
+
   private
 
   def set_name
@@ -147,44 +197,147 @@ class Human < Player
 end
 
 class Computer < Player
+  FIXED_MARKER = '+'
+
   def pick_marker(markers)
     @marker = markers.sample
   end
 
   private
 
+  attr_accessor :board, :human_marker
+
   def set_name
     self.class
+  end
+
+  def determine_human_marker
+    human_squares = board.get_squares(unmarked: false).values.reject do |sq|
+                      sq.marker == marker
+                   end
+
+    return human_squares.first.marker unless human_squares.empty?
+
+    FIXED_MARKER
   end
 end
 
 class R2D2 < Computer
-  def move(board)
-    board.unmarked_squares.sample
+  def move(brd)
+    self.board = brd
+    self.human_marker = determine_human_marker
+    optimal_square = minimax(board, 0, true)
+    p optimal_square
+    require 'pry'; binding.pry
   end
 
   def self.message
     'the unbeatable! Beep Beeeeep!'
   end
+
+  # rubocop:disable Metrics/MethodLength
+  def minimax(brd, depth, computer_turn)
+    if brd.full? || brd.someone_won?
+      return terminal_result(brd)
+    end
+
+    minimax_values = brd.unmarked_square_keys.each_with_object({}) do |square, hash|
+      new_brd = brd.copy
+
+      if computer_turn
+        new_brd[square] = marker
+        hash[square] = minimax(new_brd, depth + 1, false)
+      else
+        new_brd[square] = human.marker
+        hash[square] = minimax(new_brd, depth + 1, true)
+      end
+    end
+
+    if depth == 0
+      return optimal_square(minimax_values)
+    end
+
+    node_result(minimax_values, computer_turn)
+  end
+  # rubocop:enable Metrics/MethodLength,
+
+  def find_human_marker
+    # go over board and select the marker that is not initial and not computer
+    # if there is non, set you own
+    board.ma
+  end
+
+  def optimal_square(brd_values)
+    max_value = brd_values.values.max
+    top_squares = brd_values.each_with_object([]) do |(sq, v), ary|
+      ary << sq if v == max_value
+    end
+    top_squares.sample
+  end
+
+  def node_result(brd_values, computer_turn)
+    if computer_turn
+      brd_values.values.max
+    else
+      brd_values.values.min
+    end
+  end
+
+  def terminal_result(brd)
+    case brd.winning_marker
+    when computer.marker then  1
+    when human.marker   then -1
+    else 0
+    end
+  end
 end
 
 class C3PO < Computer
-  def move(board)
-    board.unmarked_squares.sample
-  end
-
   def self.message
     'somewhat a challenge.'
+  end
+
+  def move(brd)
+    self.board = brd
+    self.human_marker = determine_human_marker
+    board[good_square] = marker
+  end
+
+  private
+
+  def good_square
+    unless two_marker_in_line.flatten.empty?
+      unmarked = two_marker_in_line.flatten.first.select do |_, sq|
+                   sq.unmarked?
+                 end
+      return unmarked.keys.first
+    end
+
+    if board.unmarked_square_keys.include? board.middle_square
+      return board.middle_square
+    end
+
+    board.unmarked_random_square
+  end
+
+  def two_marker_in_line
+    [marker, human_marker].each_with_object([]) do |mk, ary|
+      ary << board.squares_in_line.select do |line|
+               line.values.count { |sq| sq.unmarked? } == 1 &&
+                 line.values.count { |sq| sq.marker == mk } == board.width - 1
+             end
+    end
   end
 end
 
 class WallE < Computer
-  def move(board)
-    board.unmarked_squares.sample
-  end
-
   def self.message
     'just likes to play.'
+  end
+
+  def move(brd)
+    self.board = brd
+    board[board.unmarked_random_square] = marker
   end
 end
 
@@ -205,7 +358,7 @@ class Score
   def display_round_stats
     puts
     puts "#{rounds_played} rounds have been played"
-    puts "#{@rounds_to_win} wins needed to win the game"
+    puts "#{@rounds_to_win} wins or ties needed to end the game"
     puts
     display_win_counts
     puts
@@ -234,7 +387,7 @@ class Score
   private
 
   def display_win_counts
-    @round_winner.each do |winner, count| 
+    @round_winner.each do |winner, count|
       next if winner.nil?
       puts "#{winner.name} won #{count} rounds"
     end
@@ -313,14 +466,15 @@ class TTTGame
       puts "1. #{R2D2} #{R2D2.message}"
       puts "2. #{C3PO} #{C3PO.message}"
       puts "3. #{WallE} #{WallE.message}"
-      answer = gets.chomp
-      break if %w(R C 1 2 R2D2 C3PO R2 3PO).include? answer
+      answer = gets.chomp.downcase
+      break if %w(w walle 3 r c 1 2 r2d2 c3po r2 3po).include? answer
 
       puts "Sorry invalid input!"
     end
 
-    @computer = R2D2.new if %w(R 1 R2D2 R2).include? answer
-    @computer = C3PO.new if %w(C 2 C3PO 3PO).include? answer
+    @computer = R2D2.new if %w(r 1 r2d2 r2).include? answer
+    @computer = C3PO.new if %w(c 2 c3po 3po).include? answer
+    @computer = WallE.new if %w(w 3 walle).include? answer
   end
 
   def wait_for_player_to_continue
@@ -371,10 +525,10 @@ class TTTGame
 
   def current_player_moves
     if human_turn?
-      human_moves
+      human.move(board)
       self.current_player = computer
     else
-      computer_moves
+      computer.move(board)
       self.current_player = human
     end
   end
@@ -403,31 +557,13 @@ class TTTGame
     clear_screen_and_display_board
   end
 
-  def human_moves
-    square = nil
-    loop do
-      puts "Please choose a square from #{board.join_unmarked_squares}:"
-      square = gets.chomp.to_i
-      break if board.unmarked_squares.include?(square)
-      puts "Sorry! Invalid choice"
-    end
-
-    board[square] = human.marker
-  end
-
-  def computer_moves
-    optimal_square = computer.move(board)
-
-    board[optimal_square] = computer.marker
-  end
-
   # rubocop:disable Metrics/MethodLength
   def minimax(brd, depth, computer_turn)
     if brd.full? || brd.someone_won?
       return terminal_result(brd)
     end
 
-    minimax_values = brd.unmarked_squares.each_with_object({}) do |square, hash|
+    minimax_values = brd.unmarked_square_keys.each_with_object({}) do |square, hash|
       new_brd = brd.copy
 
       if computer_turn
