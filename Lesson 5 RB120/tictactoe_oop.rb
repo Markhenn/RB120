@@ -227,8 +227,7 @@ class R2D2 < Computer
     self.board = brd
     self.human_marker = determine_human_marker
     optimal_square = minimax(board, 0, computer_turn: true)
-    p optimal_square
-    board[optimal_square] = marker
+    optimal_square.marker = marker
   end
 
   def self.message
@@ -244,7 +243,6 @@ class R2D2 < Computer
     minimax_values = brd.unmarked_square_keys.each_with_object({}) do |square, hash|
       new_brd = brd.copy
 
-      require 'pry'; binding.pry
       if computer_turn
         new_brd[square] = marker
         hash[square] = minimax(new_brd, depth + 1, computer_turn: false)
@@ -267,7 +265,7 @@ class R2D2 < Computer
     top_squares = minimax_values.each_with_object([]) do |(sq, v), ary|
       ary << sq if v == max_value
     end
-    top_squares.sample
+    board.get_squares(unmarked: true)[top_squares.sample]
   end
 
   def node_result(minimax_values, computer_turn)
