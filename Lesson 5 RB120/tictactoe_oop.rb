@@ -24,7 +24,7 @@ class Board
 
   def middle_square
     middle_point = (width ** 2).to_f / 2
-    middle_point.ceil
+    squares[middle_point.ceil]
   end
 
   def get_squares(unmarked: true)
@@ -36,7 +36,7 @@ class Board
   end
 
   def unmarked_random_square
-    unmarked_square_keys.sample
+    get_squares(unmarked: true).values.sample
   end
 
   def unmarked_square_keys
@@ -93,9 +93,7 @@ class Board
 
   def squares_in_line
     WINNING_LINES.map do |line|
-      squares.select do |num, _|
-        line.include? num
-      end
+      squares.values_at(*line)
     end
   end
 
@@ -286,6 +284,8 @@ class R2D2 < Computer
 end
 
 class C3PO < Computer
+  THREAT_SQ = 1
+
   def self.message
     'somewhat a challenge.'
   end
@@ -293,20 +293,17 @@ class C3PO < Computer
   def move(brd)
     self.board = brd
     self.human_marker = determine_human_marker
-    board[good_square] = marker
+    good_square.marker = marker
   end
 
   private
 
   def good_square
     unless two_marker_in_line.flatten.empty?
-      unmarked = two_marker_in_line.flatten.first.select do |_, sq|
-                   sq.unmarked?
-                 end
-      return unmarked.keys.first
+      return two_marker_in_line.select(&:unmarked?).first
     end
 
-    if board.unmarked_square_keys.include? board.middle_square
+    if board.middle_square.unmarked?
       return board.middle_square
     end
 
@@ -316,10 +313,10 @@ class C3PO < Computer
   def two_marker_in_line
     [marker, human_marker].each_with_object([]) do |mk, ary|
       ary << board.squares_in_line.select do |line|
-               line.values.count { |sq| sq.unmarked? } == 1 &&
-                 line.values.count { |sq| sq.marker == mk } == board.width - 1
+               line.count { |sq| sq.unmarked? } == THREAT_SQ &&
+                 line.count { |sq| sq.marker == mk } == board.width - THREAT_SQ
              end
-    end
+    end.flatten
   end
 end
 
@@ -330,7 +327,7 @@ class WallE < Computer
 
   def move(brd)
     self.board = brd
-    board[board.unmarked_random_square] = marker
+    board.unmarked_random_square.marker = marker
   end
 end
 
