@@ -1,21 +1,16 @@
 # Tic Tac Toe Game
 
 class Board
-  WINNING_LINES = [[1, 2, 3], [4, 5, 6], [7, 8, 9],
-                   [1, 4, 7], [2, 5, 8], [3, 6, 9],
-                   [1, 5, 9], [3, 5, 7]]
-
   DELIMITER = ','
   END_DELIM = 'or'
 
-  WIDTH = 3
-
   attr_reader :width
 
-  def initialize
+  def initialize(width)
     @squares = {}
+    @width = width
     reset
-    @width = WIDTH
+    @winning_lines = calculate_winning_lines
   end
 
   def []=(square_num, marker)
@@ -56,28 +51,25 @@ class Board
     !!winning_marker
   end
 
-  # rubocop:disable Metrics/AbcSize
   def draw
-    puts "     |     |"
-    puts "  #{squares[1]}  |  #{squares[2]}  |  #{squares[3]}"
-    puts "     |     |"
-    puts " ----+-----+-----"
-    puts "     |     |"
-    puts "  #{squares[4]}  |  #{squares[5]}  |  #{squares[6]}"
-    puts "     |     |"
-    puts " ----+-----+-----"
-    puts "     |     |"
-    puts "  #{squares[7]}  |  #{squares[8]}  |  #{squares[9]}"
-    puts "     |     |"
+    brd_array = []
+    brd_values = squares.values
+    brd_numbers = squares.keys
+
+    1.upto(width) { brd_array << brd_values.shift(width) }
+
+    brd_array.each_with_index do |line, index|
+      display_squares(line, index, brd_numbers)
+    end
   end
-  # rubocop:enable Metrics/AbcSize
 
   def reset
-    (1..9).each { |key| squares[key] = Square.new }
+    board_size = width ** 2
+    (1..board_size).each { |key| squares[key] = Square.new }
   end
 
   def winning_marker
-    WINNING_LINES.each do |line|
+    winning_lines.each do |line|
       next if squares[line.first].unmarked?
 
       return marker_at(line.first) if three_in_a_line(line)
@@ -85,14 +77,8 @@ class Board
     nil
   end
 
-  def squares_in_line_back_up
-    WINNING_LINES.map do |line|
-      squares.values_at(*line)
-    end
-  end
-
   def squares_in_line
-    WINNING_LINES.map do |line|
+    winning_lines.map do |line|
       squares.values_at(*line)
     end
   end
@@ -110,6 +96,7 @@ class Board
   private
 
   attr_writer :width
+  attr_reader :winning_lines
 
   def three_in_a_line(line)
     squares.values_at(*line[1..-1]).map(&:marker).all? do |mk|
@@ -127,6 +114,82 @@ class Board
       return "#{first_part} #{ending} #{array[-1]}"
     end
     array.first
+  end
+
+  # Section: Display the Board
+  def display_empty_square
+    1.upto(width) do |count|
+      if count != width
+        print "     |"
+      end
+    end
+    puts ""
+  end
+
+  def display_divider(row_idx)
+    if row_idx < width - 1
+      1.upto(width) do |count|
+        if count == width
+          puts "-----"
+        else
+          print "-----+"
+        end
+      end
+    else
+      puts ""
+    end
+  end
+
+  def display_squares(array, row_idx, brd_numbers)
+    line_numbers = brd_numbers.shift(width).join(", ")
+
+    display_empty_square
+
+    array.each_with_index do |square, idx|
+      if idx == width - 1
+        print "  #{square}   \##{line_numbers}"
+      else
+        print "  #{square}  |"
+      end
+    end
+
+    puts ""
+    display_empty_square
+    display_divider(row_idx)
+  end
+
+
+  # Section: Winning Lines
+  def calculate_rows
+    rows = squares.keys
+    winning_rows = []
+
+    width.times { winning_rows << rows.shift(width) }
+    winning_rows
+  end
+
+  def calculate_columns
+    columns = Array.new(width, [])
+
+    columns.map.with_index do |_, idx|
+      (idx + 1).step(by: width, to: squares.size).to_a
+    end
+  end
+
+  def calculate_diagonals
+    size = squares.size
+    diagonals = []
+
+    diagonals << 1.step(by: width + 1, to: size).to_a
+    diagonals << width.step(by: width - 1, to: size - width + 1).to_a
+  end
+
+  def calculate_winning_lines
+    rows = calculate_rows
+    columns = calculate_columns
+    diagonals = calculate_diagonals
+
+    rows + columns + diagonals
   end
 end
 
@@ -221,6 +284,14 @@ class Computer < Player
 end
 
 class R2D2 < Computer
+  WIN = 1
+  LOSE = -1
+  TIE = 0
+
+  def self.message
+    'the unbeatable! Beep Beeeeep!'
+  end
+
   def move(brd)
     self.board = brd
     self.human_marker = determine_human_marker
@@ -228,9 +299,7 @@ class R2D2 < Computer
     optimal_square.marker = marker
   end
 
-  def self.message
-    'the unbeatable! Beep Beeeeep!'
-  end
+  private
 
   # rubocop:disable Metrics/MethodLength
   def minimax(brd, depth, computer_turn: true)
@@ -276,9 +345,9 @@ class R2D2 < Computer
 
   def terminal_result(brd)
     case brd.winning_marker
-    when marker then  1
-    when human_marker   then -1
-    else 0
+    when marker then  WIN
+    when human_marker   then LOSE
+    else TIE
     end
   end
 end
@@ -394,7 +463,6 @@ class TTTGame
   MARKERS = ("A".."Z").to_a
 
   def initialize
-    @board = Board.new
     @human = Human.new
     @first_to_move = @human
     @current_player = @first_to_move
@@ -439,12 +507,29 @@ class TTTGame
 
   def start_game
     puts
+    set_board
+    puts
     set_opponent
     display_welcome_message
     set_markers
     puts
     score.set_rounds_to_win
     puts
+  end
+
+  def set_board
+    answer = nil
+    loop do
+      puts "Which board size would like to play on?"
+      puts "Type 3 for 3x3 (standard tictactoe board size)"
+      puts "Type 5 for 5x5"
+      answer = gets.chomp.to_i
+      break [3, 5].include?(answer)
+
+      puts 'Not a valid choice!'
+    end
+
+    @board = Board.new(answer)
   end
 
   def set_opponent
@@ -465,6 +550,14 @@ class TTTGame
     @computer = R2D2.new if %w(r 1 r2d2 r2).include? answer
     @computer = C3PO.new if %w(c 2 c3po 3po).include? answer
     @computer = WallE.new if %w(w 3 walle).include? answer
+  end
+
+  def set_opponent_xxx
+    if board.width > 3
+      #set two robots
+    else
+      #set three robotsk
+    end
   end
 
   def wait_for_player_to_continue
@@ -547,56 +640,6 @@ class TTTGame
     clear_screen_and_display_board
   end
 
-  # rubocop:disable Metrics/MethodLength
-  def minimax(brd, depth, computer_turn)
-    if brd.full? || brd.someone_won?
-      return terminal_result(brd)
-    end
-
-    minimax_values = brd.unmarked_square_keys.each_with_object({}) do |square, hash|
-      new_brd = brd.copy
-
-      if computer_turn
-        new_brd[square] = computer.marker
-        hash[square] = minimax(new_brd, depth + 1, false)
-      else
-        new_brd[square] = human.marker
-        hash[square] = minimax(new_brd, depth + 1, true)
-      end
-    end
-
-    if depth == 0
-      return optimal_square(minimax_values)
-    end
-
-    node_result(minimax_values, computer_turn)
-  end
-  # rubocop:enable Metrics/MethodLength,
-
-  def optimal_square(brd_values)
-    max_value = brd_values.values.max
-    top_squares = brd_values.each_with_object([]) do |(sq, v), ary|
-      ary << sq if v == max_value
-    end
-    top_squares.sample
-  end
-
-  def node_result(brd_values, computer_turn)
-    if computer_turn
-      brd_values.values.max
-    else
-      brd_values.values.min
-    end
-  end
-
-  def terminal_result(brd)
-    case brd.winning_marker
-    when computer.marker then  1
-    when human.marker   then -1
-    else 0
-    end
-  end
-
   def display_result(message)
     if human_won? || computer_won?
       puts "#{winning_player.name} #{message}"
@@ -645,6 +688,11 @@ class TTTGame
     puts
     puts "Hello #{human.name} and welcome to Tic Tac Toe!"
     puts "My name is #{computer.name} and I will be your opponent"
+    puts
+    puts 'To make the game more fun I will set the following house rules:'
+    puts 'You will place your marker first in round 1'
+    puts 'In round 2 I will place my marker first'
+    puts 'In a rematch the loosing player will place his marker first'
     puts
   end
 
