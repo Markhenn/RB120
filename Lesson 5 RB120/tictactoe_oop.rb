@@ -84,7 +84,7 @@ class Board
   end
 
   def copy
-    new_board = Board.new
+    new_board = Board.new(width)
     squares.each { |sq, mk| new_board.squares[sq] = mk.clone }
     new_board
   end
@@ -252,7 +252,9 @@ class Human < Player
       puts "Hey what is your name?"
       answer = gets.chomp
       break answer if answer.size > 1
+
       puts "Sorry that is too short, at least 2 letters please!"
+      puts
     end
   end
 end
@@ -289,7 +291,7 @@ class R2D2 < Computer
   TIE = 0
 
   def self.message
-    'the unbeatable! Beep Beeeeep!'
+    'R2D2 - the unbeatable! Beep Beeeeep!'
   end
 
   def move(brd)
@@ -297,6 +299,10 @@ class R2D2 < Computer
     self.human_marker = determine_human_marker
     optimal_square = minimax(board, 0, computer_turn: true)
     optimal_square.marker = marker
+  end
+
+  def play_again_message
+    'Beep Beep Beeep! (You will never beat me, but try again if you must!)'
   end
 
   private
@@ -356,13 +362,17 @@ class C3PO < Computer
   THREAT_SQ = 1
 
   def self.message
-    'somewhat a challenge.'
+    'C3PO - I am somewhat a challenge.'
   end
 
   def move(brd)
     self.board = brd
     self.human_marker = determine_human_marker
     good_square.marker = marker
+  end
+
+  def play_again_message
+    'This has been an extraordinary match! Would like to play again?'
   end
 
   private
@@ -391,12 +401,16 @@ end
 
 class WallE < Computer
   def self.message
-    'just likes to play.'
+    'Wall-E - I just likes to play.'
   end
 
   def move(brd)
     self.board = brd
     board.unmarked_random_square.marker = marker
+  end
+
+  def play_again_message
+    'Wall-E wants to play another round with you!'
   end
 end
 
@@ -438,7 +452,9 @@ class Score
       puts "Choose from 1 and 10 rounds"
       answer = gets.chomp.to_i
       break if (1..10).to_a.include? answer
+
       puts "Sorry, invalid answer! Type a number from 1 and 10"
+      puts
     end
     @rounds_to_win = answer
   end
@@ -524,9 +540,10 @@ class TTTGame
       puts "Type 3 for 3x3 (standard tictactoe board size)"
       puts "Type 5 for 5x5"
       answer = gets.chomp.to_i
-      break [3, 5].include?(answer)
+      break if [3, 5].include?(answer)
 
       puts 'Not a valid choice!'
+      puts
     end
 
     @board = Board.new(answer)
@@ -537,26 +554,29 @@ class TTTGame
     puts "Who shall be your opponent?"
 
     loop do
-      puts "Pick one of the following by typing the first letter of his name:"
-      puts "1. #{R2D2} #{R2D2.message}"
-      puts "2. #{C3PO} #{C3PO.message}"
-      puts "3. #{WallE} #{WallE.message}"
+      puts "Pick one of the robots by typing the first letter of his name:"
+      print robot_messages
       answer = gets.chomp.downcase
-      break if %w(w walle 3 r c 1 2 r2d2 c3po r2 3po).include? answer
+      break if %w(w walle c c3po 3po).include? answer
+      break if board.width <= 3 && %w(r r2 r2d).include?(answer)
 
       puts "Sorry invalid input!"
+      puts
     end
 
-    @computer = R2D2.new if %w(r 1 r2d2 r2).include? answer
-    @computer = C3PO.new if %w(c 2 c3po 3po).include? answer
-    @computer = WallE.new if %w(w 3 walle).include? answer
+    @computer = R2D2.new if %w(r r2d2 r2).include? answer
+    @computer = C3PO.new if %w(c c3po 3po).include? answer
+    @computer = WallE.new if %w(w walle).include? answer
   end
 
-  def set_opponent_xxx
+  def robot_messages
     if board.width > 3
-      #set two robots
+      puts C3PO.message
+      puts WallE.message
     else
-      #set three robotsk
+      puts R2D2.message
+      puts C3PO.message
+      puts WallE.message
     end
   end
 
@@ -664,7 +684,9 @@ class TTTGame
   end
 
   def play_again?
-    puts 'Type y if you want to play again'
+    puts computer.play_again_message
+    puts
+    puts "Type y if you want to play #{computer.class} again"
     answer = gets.chomp.downcase
     clear
 
@@ -690,9 +712,9 @@ class TTTGame
     puts "My name is #{computer.name} and I will be your opponent"
     puts
     puts 'To make the game more fun I will set the following house rules:'
-    puts 'You will place your marker first in round 1'
-    puts 'In round 2 I will place my marker first'
-    puts 'In a rematch the loosing player will place his marker first'
+    puts '1. You will place your marker first in round 1'
+    puts '2. In round 2 I will place my marker first'
+    puts '3. In a rematch the loosing player will place his marker first'
     puts
   end
 
