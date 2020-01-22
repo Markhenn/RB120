@@ -77,7 +77,7 @@ class Board
     nil
   end
 
-  def squares_in_line
+  def squares_in_winning_line
     winning_lines.map do |line|
       squares.values_at(*line)
     end
@@ -95,7 +95,6 @@ class Board
 
   private
 
-  attr_writer :width
   attr_reader :winning_lines
 
   def three_in_a_line(line)
@@ -153,7 +152,7 @@ class Board
       end
     end
 
-    puts ""
+    puts
     display_empty_square
     display_divider(row_idx)
   end
@@ -230,6 +229,7 @@ class Human < Player
       puts "Sorry invalid choice!"
       puts
     end
+    puts
 
     @marker = answer
   end
@@ -244,6 +244,7 @@ class Human < Player
       puts "Sorry! Invalid choice"
       puts
     end
+    puts
 
     board[square] = marker
   end
@@ -255,11 +256,14 @@ class Human < Player
     loop do
       puts "Hey what is your name?"
       answer = gets.chomp
-      break answer if answer.size > 1
+      break  if answer.size > 1
 
       puts "Sorry that is too short, at least 2 letters please!"
       puts
     end
+    puts
+
+    answer
   end
 end
 
@@ -312,6 +316,7 @@ class R2D2 < Computer
 
   private
 
+  # Section: Calculate optimal square with minimax algorithm
   def calculate_square
     if board.unmarked_square_keys.size >= ROBOT_CALC_LIMIT
       board.unmarked_random_square
@@ -320,13 +325,22 @@ class R2D2 < Computer
     end
   end
 
-  # rubocop:disable Metrics/MethodLength
   def minimax(brd, depth, computer_turn: true)
     if brd.full? || brd.someone_won?
       return terminal_result(brd)
     end
 
-    minimax_values = brd.unmarked_square_keys.each_with_object({}) do |square, hash|
+    node_values = calculate_note_values(brd, depth, computer_turn)
+
+    if depth == 0
+      return optimal_square(node_values)
+    end
+
+    node_result(node_values, computer_turn)
+  end
+
+  def calculate_note_values(brd, depth, computer_turn)
+    brd.unmarked_square_keys.each_with_object({}) do |square, hash|
       new_brd = brd.copy
 
       if computer_turn
@@ -337,14 +351,7 @@ class R2D2 < Computer
         hash[square] = minimax(new_brd, depth + 1, computer_turn: true)
       end
     end
-
-    if depth == 0
-      return optimal_square(minimax_values)
-    end
-
-    node_result(minimax_values, computer_turn)
   end
-  # rubocop:enable Metrics/MethodLength,
 
   def optimal_square(minimax_values)
     max_value = minimax_values.values.max
@@ -404,7 +411,7 @@ class C3PO < Computer
 
   def two_marker_in_line
     [marker, human_marker].each_with_object([]) do |mk, ary|
-      ary << board.squares_in_line.select do |line|
+      ary << board.squares_in_winning_line.select do |line|
                line.count { |sq| sq.unmarked? } == THREAT_SQ &&
                  line.count { |sq| sq.marker == mk } == board.width - THREAT_SQ
              end
@@ -445,7 +452,7 @@ class Score
     puts "Round #{rounds_played + 1}"
   end
 
-  def display_round_stats
+  def display_statistics
     puts
     puts "#{rounds_played} rounds have been played"
     puts "#{rounds_to_win} wins or ties needed to end the game"
@@ -473,6 +480,8 @@ class Score
       puts "Sorry, invalid answer! Type a number from 1 and 10"
       puts
     end
+    puts
+
     @rounds_to_win = answer
   end
 
@@ -480,9 +489,13 @@ class Score
 
   attr_reader :round_winner, :rounds_to_win
 
+  def only_ties?
+    round_winner.keys.all?(&:nil?)
+  end
+
   def display_win_counts
     round_winner.each do |winner, count|
-      next if winner.nil?
+      next puts "#{count} ties so far" if winner.nil?
       puts "#{winner.name} won #{count} rounds"
     end
   end
@@ -494,7 +507,6 @@ class Score
 end
 
 class TTTGame
-
   MARKERS = ("A".."Z").to_a
 
   def initialize
@@ -526,6 +538,7 @@ class TTTGame
   attr_reader :board, :human, :computer, :score, :first_to_move
   attr_accessor :current_player
 
+  # Section: Play a round
   def play_a_round
     loop do
       current_player_moves
@@ -540,16 +553,68 @@ class TTTGame
     wait_for_player_to_continue unless game_is_won?
   end
 
+  def current_player_moves
+    if human_turn?
+      human.move(board)
+      self.current_player = computer
+    else
+      computer.move(board)
+      self.current_player = human
+    end
+  end
+
+  def human_turn?
+    current_player == human
+  end
+
+  def display_round_result
+    clear_screen_and_display_board
+    display_result('wins the round')
+  end
+
+  def store_winner
+    score << winning_player
+  end
+
+  def display_round_stats
+    score.display_statistics
+  end
+
+  def wait_for_player_to_continue
+    puts "Type any key to continue..."
+    gets
+    puts
+  end
+
+  def game_is_won?
+    score.game_over?
+  end
+
+  def clear
+    system 'clear'
+  end
+
+  def display_board
+    score.display_round
+    puts "#{human.name} is #{human.marker}, "\
+         "#{computer.name} is #{computer.marker}"
+    puts
+    board.draw
+    puts
+  end
+
+  def clear_screen_and_display_board
+    clear
+    display_board
+  end
+
+  # Section: Game Set up
   def start_game
-    puts
     set_board
-    puts
     set_opponent
     display_welcome_message
     set_markers
-    puts
-    score.set_rounds_to_win
-    puts
+    set_game_length
   end
 
   def set_board
@@ -564,6 +629,7 @@ class TTTGame
       puts 'Not a valid choice!'
       puts
     end
+    puts
 
     @board = Board.new(answer)
   end
@@ -582,44 +648,51 @@ class TTTGame
       puts "Sorry invalid input!"
       puts
     end
+    puts
 
+    assign_robot(answer)
+  end
+
+  def assign_robot(answer)
     @computer = R2D2.new if %w(r r2d2 r2).include? answer
     @computer = C3PO.new if %w(c c3po 3po).include? answer
     @computer = WallE.new if %w(w walle).include? answer
   end
 
   def robot_messages
-    if board.width > 3
-      puts C3PO.message
-      puts WallE.message
-    else
-      puts R2D2.message
-      puts C3PO.message
-      puts WallE.message
-    end
+    puts R2D2.message if board.width <= 3
+
+    puts C3PO.message
+    puts WallE.message
   end
 
-  def wait_for_player_to_continue
-    puts "Type any key to continue..."
-    gets
+  def display_welcome_message
+    puts "Hello #{human.name} and welcome to Tic Tac Toe!"
+    puts "My name is #{computer.name} and I will be your opponent"
+    puts
+    puts 'To make the game more fun I will set the following house rules:'
+    puts '1. You will place your marker first in round 1.'
+    puts '2. In round 2 I will place my marker first.'
+    puts '3. In a rematch the loosing player will place his marker first.'
     puts
   end
 
-  def game_is_won?
-    score.game_over?
+  def set_markers
+    human.pick_marker(MARKERS)
+    possible_markers = MARKERS.reject { |mk| mk == human.marker }
+    computer.pick_marker(possible_markers)
   end
 
-  def store_winner
-    score << winning_player
+  def set_game_length
+    score.set_rounds_to_win
   end
 
+  # Section: Round or Game Over
   def winning_player
     if human_won?
       human
     elsif computer_won?
       computer
-    else
-      nil
     end
   end
 
@@ -631,41 +704,17 @@ class TTTGame
     computer.marker == board.winning_marker
   end
 
-  def display_round_stats
-    score.display_round_stats
-  end
-
-  def set_markers
-    human.pick_marker(MARKERS)
-    possible_markers = MARKERS.reject { |mk| mk == human.marker }
-    computer.pick_marker(possible_markers)
-  end
-
-  def human_turn?
-    current_player == human
-  end
-
-  def current_player_moves
-    if human_turn?
-      human.move(board)
-      self.current_player = computer
-    else
-      computer.move(board)
-      self.current_player = human
-    end
-  end
-
   def display_play_again_message
     puts "Let's play again!"
     puts
   end
 
   def change_starting_player
-    if first_to_move == human
-      first_to_move = computer
-    else
-      first_to_move = human
-    end
+    @first_to_move = if first_to_move == human
+                       computer
+                     else
+                       human
+                     end
   end
 
   def reset_game
@@ -685,22 +734,16 @@ class TTTGame
     else
       puts 'It is a tie!'
     end
+    puts
   end
 
   def display_game_result
-    puts
+    puts '*****************************'
     puts 'The game is over!'
     display_result('wins the whole game')
+    puts '*****************************'
     puts
-  end
-
-  def display_round_result
-    clear_screen_and_display_board
-    display_result('wins the round')
-  end
-
-  def clear
-    system 'clear'
+    score.display_statistics
   end
 
   def play_again?
@@ -711,31 +754,6 @@ class TTTGame
     clear
 
     answer.start_with? 'y'
-  end
-
-  def display_board
-    score.display_round
-    puts "#{human.name} is #{human.marker}, #{computer.name} is #{computer.marker}"
-    puts
-    board.draw
-    puts
-  end
-
-  def clear_screen_and_display_board
-    clear
-    display_board
-  end
-
-  def display_welcome_message
-    puts
-    puts "Hello #{human.name} and welcome to Tic Tac Toe!"
-    puts "My name is #{computer.name} and I will be your opponent"
-    puts
-    puts 'To make the game more fun I will set the following house rules:'
-    puts '1. You will place your marker first in round 1.'
-    puts '2. In round 2 I will place my marker first.'
-    puts '3. In a rematch the loosing player will place his marker first.u'
-    puts
   end
 
   def display_goodbye_message
