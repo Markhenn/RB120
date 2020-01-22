@@ -226,7 +226,9 @@ class Human < Player
       puts "Please pick a single letter from the alphabet as your marker (A-Z)"
       answer = gets.chomp.upcase
       break if markers.include? answer
+
       puts "Sorry invalid choice!"
+      puts
     end
 
     @marker = answer
@@ -238,7 +240,9 @@ class Human < Player
       puts "Please choose a square from #{board.join_unmarked_square_keys}:"
       square = gets.chomp.to_i
       break if board.unmarked_square_keys.include?(square)
+
       puts "Sorry! Invalid choice"
+      puts
     end
 
     board[square] = marker
@@ -286,6 +290,7 @@ class Computer < Player
 end
 
 class R2D2 < Computer
+  ROBOT_CALC_LIMIT = 9
   WIN = 1
   LOSE = -1
   TIE = 0
@@ -297,8 +302,8 @@ class R2D2 < Computer
   def move(brd)
     self.board = brd
     self.human_marker = determine_human_marker
-    optimal_square = minimax(board, 0, computer_turn: true)
-    optimal_square.marker = marker
+
+    calculate_square.marker = marker
   end
 
   def play_again_message
@@ -306,6 +311,14 @@ class R2D2 < Computer
   end
 
   private
+
+  def calculate_square
+    if board.unmarked_square_keys.size >= ROBOT_CALC_LIMIT
+      board.unmarked_random_square
+    else
+      minimax(board, 0, computer_turn: true)
+    end
+  end
 
   # rubocop:disable Metrics/MethodLength
   def minimax(brd, depth, computer_turn: true)
@@ -401,7 +414,11 @@ end
 
 class WallE < Computer
   def self.message
-    'Wall-E - I just likes to play.'
+    'Wall-E - I just like to play.'
+  end
+
+  def set_name
+    'Wall-E'
   end
 
   def move(brd)
@@ -431,14 +448,14 @@ class Score
   def display_round_stats
     puts
     puts "#{rounds_played} rounds have been played"
-    puts "#{@rounds_to_win} wins or ties needed to end the game"
+    puts "#{rounds_to_win} wins or ties needed to end the game"
     puts
     display_win_counts
     puts
   end
 
   def game_over?
-    @round_winner.values.any? { |wins| wins >= @rounds_to_win }
+    round_winner.values.any? { |wins| wins >= @rounds_to_win }
   end
 
   def <<(winner)
@@ -461,16 +478,18 @@ class Score
 
   private
 
+  attr_reader :round_winner, :rounds_to_win
+
   def display_win_counts
-    @round_winner.each do |winner, count|
+    round_winner.each do |winner, count|
       next if winner.nil?
       puts "#{winner.name} won #{count} rounds"
     end
   end
 
   def rounds_played
-    return 0 if @round_winner.empty?
-    @round_winner.values.reduce(:+)
+    return 0 if round_winner.empty?
+    round_winner.values.reduce(:+)
   end
 end
 
@@ -638,7 +657,7 @@ class TTTGame
 
   def display_play_again_message
     puts "Let's play again!"
-    puts ""
+    puts
   end
 
   def change_starting_player
@@ -670,6 +689,7 @@ class TTTGame
 
   def display_game_result
     puts
+    puts 'The game is over!'
     display_result('wins the whole game')
     puts
   end
@@ -686,7 +706,7 @@ class TTTGame
   def play_again?
     puts computer.play_again_message
     puts
-    puts "Type y if you want to play #{computer.class} again"
+    puts "Type y if you want to play #{computer.name} again"
     answer = gets.chomp.downcase
     clear
 
@@ -712,9 +732,9 @@ class TTTGame
     puts "My name is #{computer.name} and I will be your opponent"
     puts
     puts 'To make the game more fun I will set the following house rules:'
-    puts '1. You will place your marker first in round 1'
-    puts '2. In round 2 I will place my marker first'
-    puts '3. In a rematch the loosing player will place his marker first'
+    puts '1. You will place your marker first in round 1.'
+    puts '2. In round 2 I will place my marker first.'
+    puts '3. In a rematch the loosing player will place his marker first.u'
     puts
   end
 

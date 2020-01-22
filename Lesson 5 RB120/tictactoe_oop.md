@@ -8,7 +8,5 @@ marking a square. The first player to mark 3 squares in a row wins.
 - rubocop
 - organize methods in a better fashion for someone to read through
 
-# Fixes
-- add a different game over message before asking for restart and remove extra
-  spacing
+# extract minimax_values into its own method
 
