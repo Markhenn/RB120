@@ -486,7 +486,7 @@ class Score
   def set_rounds_to_win
     answer = nil
     loop do
-      puts "After How many wins or ties should end the game?"
+      puts "After how many wins or ties should end the game?"
       puts "Choose from 1 and 10 rounds"
       answer = gets.chomp.to_i
       break if (1..10).to_a.include? answer
