@@ -18,7 +18,7 @@ class Board
   end
 
   def middle_square
-    middle_point = (width ** 2).to_f / 2
+    middle_point = (width**2).to_f / 2
     squares[middle_point.ceil]
   end
 
@@ -38,9 +38,8 @@ class Board
     get_squares(unmarked: true).keys
   end
 
-
   def join_unmarked_square_keys
-    joinor(self.unmarked_square_keys)
+    joinor(unmarked_square_keys)
   end
 
   def full?
@@ -64,7 +63,7 @@ class Board
   end
 
   def reset
-    board_size = width ** 2
+    board_size = width**2
     (1..board_size).each { |key| squares[key] = Square.new }
   end
 
@@ -156,7 +155,6 @@ class Board
     display_empty_square
     display_divider(row_idx)
   end
-
 
   # Section: Winning Lines
   def calculate_rows
@@ -284,8 +282,8 @@ class Computer < Player
 
   def determine_human_marker
     human_squares = board.get_squares(unmarked: false).values.reject do |sq|
-                      sq.marker == marker
-                   end
+      sq.marker == marker
+    end
 
     return human_squares.first.marker unless human_squares.empty?
 
@@ -298,6 +296,11 @@ class R2D2 < Computer
   WIN = 1
   LOSE = -1
   TIE = 0
+  NAME_IDX = %w(r2d2 r2 r)
+
+  def self.index
+    NAME_IDX
+  end
 
   def self.message
     'R2D2 - the unbeatable! Beep Beeeeep!'
@@ -371,8 +374,8 @@ class R2D2 < Computer
 
   def terminal_result(brd)
     case brd.winning_marker
-    when marker then  WIN
-    when human_marker   then LOSE
+    when marker then WIN
+    when human_marker then LOSE
     else TIE
     end
   end
@@ -380,6 +383,11 @@ end
 
 class C3PO < Computer
   THREAT_SQ = 1
+  NAME_IDX = %w(c3po 3po c)
+
+  def self.index
+    NAME_IDX
+  end
 
   def self.message
     'C3PO - I am somewhat a challenge.'
@@ -412,14 +420,20 @@ class C3PO < Computer
   def two_marker_in_line
     [marker, human_marker].each_with_object([]) do |mk, ary|
       ary << board.squares_in_winning_line.select do |line|
-               line.count { |sq| sq.unmarked? } == THREAT_SQ &&
-                 line.count { |sq| sq.marker == mk } == board.width - THREAT_SQ
-             end
+        line.count(&:unmarked?) == THREAT_SQ &&
+          line.count { |sq| sq.marker == mk } == board.width - THREAT_SQ
+      end
     end.flatten
   end
 end
 
 class WallE < Computer
+  NAME_IDX = %w(walle w)
+
+  def self.index
+    NAME_IDX
+  end
+
   def self.message
     'Wall-E - I just like to play.'
   end
@@ -472,7 +486,7 @@ class Score
   def set_rounds_to_win
     answer = nil
     loop do
-      puts "How many wins or ties should end the game?"
+      puts "After How many wins or ties should end the game?"
       puts "Choose from 1 and 10 rounds"
       answer = gets.chomp.to_i
       break if (1..10).to_a.include? answer
@@ -642,8 +656,7 @@ class TTTGame
       puts "Pick one of the robots by typing the first letter of his name:"
       print robot_messages
       answer = gets.chomp.downcase
-      break if %w(w walle c c3po 3po).include? answer
-      break if board.width <= 3 && %w(r r2 r2d).include?(answer)
+      break if all_robots.include? answer
 
       puts "Sorry invalid input!"
       puts
@@ -653,15 +666,24 @@ class TTTGame
     assign_robot(answer)
   end
 
+  def all_robots
+    robots = Array.new
+    robots += R2D2.index unless board.width > 3
+    robots + C3PO.index + WallE.index
+  end
+
   def assign_robot(answer)
-    @computer = R2D2.new if %w(r r2d2 r2).include? answer
-    @computer = C3PO.new if %w(c c3po 3po).include? answer
-    @computer = WallE.new if %w(w walle).include? answer
+    @computer = if R2D2.index.include? answer
+                  R2D2.new
+                elsif C3PO.index.include? answer
+                  C3PO.new
+                elsif WallE.index.include? answer
+                  WallE.new
+                end
   end
 
   def robot_messages
-    puts R2D2.message if board.width <= 3
-
+    puts R2D2.message unless board.width > 3
     puts C3PO.message
     puts WallE.message
   end

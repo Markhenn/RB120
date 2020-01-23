@@ -7,5 +7,4 @@ marking a square. The first player to mark 3 squares in a row wins.
   # rubocop:disable Metrics/MethodLength
 
 
-- create an array for each robot (name_index) to use in set opponent
 
