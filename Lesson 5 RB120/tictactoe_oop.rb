@@ -253,8 +253,8 @@ class Human < Player
     answer = nil
     loop do
       puts "Hey what is your name?"
-      answer = gets.chomp
-      break  if answer.size > 1
+      answer = gets.chomp.strip
+      break unless answer.size < 2
 
       puts "Sorry that is too short, at least 2 letters please!"
       puts
@@ -624,6 +624,7 @@ class TTTGame
 
   # Section: Game Set up
   def start_game
+    clear
     set_board
     set_opponent
     display_welcome_message
@@ -643,7 +644,7 @@ class TTTGame
       puts 'Not a valid choice!'
       puts
     end
-    puts
+    clear
 
     @board = Board.new(answer)
   end
@@ -661,7 +662,7 @@ class TTTGame
       puts "Sorry invalid input!"
       puts
     end
-    puts
+    clear
 
     assign_robot(answer)
   end
@@ -703,10 +704,12 @@ class TTTGame
     human.pick_marker(MARKERS)
     possible_markers = MARKERS.reject { |mk| mk == human.marker }
     computer.pick_marker(possible_markers)
+    clear
   end
 
   def set_game_length
     score.set_rounds_to_win
+    clear
   end
 
   # Section: Round or Game Over
@@ -760,6 +763,7 @@ class TTTGame
   end
 
   def display_game_result
+    clear
     puts '*****************************'
     puts 'The game is over!'
     display_result('wins the whole game')
