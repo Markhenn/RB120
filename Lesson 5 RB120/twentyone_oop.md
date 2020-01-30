@@ -77,11 +77,11 @@ show suit and value
 
 ---------------
 
-### deal_cards
+# Create Participant / Player and Dealer Class
 
-what do I need for that
-- a deck
-- a card
-- what does deal mean?
-- drawing a certain number of cards from the deck
-
+Participant is super class to Player and Dealer
+- Methods see CRC Cards
+- states:
+  - cards in hand
+  - name
+  - 
