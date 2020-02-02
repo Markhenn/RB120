@@ -42,7 +42,7 @@ Dealer
 ------------
 Participant -> super class of Dealer and Player
 Responsibility:
-stay, total, busted?, hit
+star, total, busted?, hit
 
 Collaborators:
 Hand
@@ -77,11 +77,8 @@ show suit and value
 
 ---------------
 
-# Create Participant / Player and Dealer Class
+## play more than one round
 
-Participant is super class to Player and Dealer
-- Methods see CRC Cards
-- states:
-  - cards in hand
-  - name
-  - 
+- create a method to loop over the rounds
+- break unles play again
+
