@@ -25,6 +25,8 @@ module Hand
       puts "=> #{card}"
     end
 
+    puts '=> ??' if cards.size == 1
+
     puts "Total value => #{total_value}"
     puts
   end
@@ -34,7 +36,7 @@ module Hand
   end
 
   def >(opponent)
-    self.total_value > opponent.total_value
+    total_value > opponent.total_value
   end
 
   private
@@ -52,13 +54,12 @@ class Participant
     set_name
   end
 
-  def stays
+  def display_stays
     puts "#{name} stays!"
     puts
-    show_hand
   end
 
-  def hits
+  def display_hits
     puts "#{name} hits!"
     puts "and is dealt a #{cards.last}"
     puts
@@ -82,22 +83,40 @@ end
 class Player < Participant
   include Hand
 
-  private
-
-  def set_name
-
-    # TODO delete return
-    return self.name = 'Mark'
+  def stays?
+    puts 'Do you want to hit or stay?'
 
     answer = nil
     loop do
-      puts "Hey what is your name?"
+      puts 'Type h for hit and s for stay'
+      answer = gets.chomp.downcase
+      break answer if %w(h s hit stay).include? answer
+
+      puts 'Invalid input!'
+      puts
+    end
+    puts
+
+    if %(s stay).include? answer
+      true
+    else
+      false
+    end
+  end
+
+  private
+
+  def set_name
+    answer = nil
+    loop do
+      puts "What is your name?"
       answer = gets.chomp.strip
       break unless answer.size < 2
 
       puts "Sorry that is too short, at least 2 letters please!"
       puts
     end
+    puts
 
     self.name = answer
   end
@@ -108,7 +127,7 @@ class Dealer < Participant
 
   include Hand
 
-  def stay?
+  def stays?
     total_value >= 17
   end
 
@@ -139,12 +158,12 @@ class Deck
         cards << Card.new(suit, face)
       end
     end
+    shuffle
   end
 
   private
 
   attr_reader :cards
-
 end
 
 class Card
@@ -190,14 +209,13 @@ class Card
 end
 
 class TOGame
-  def initialize
-    @deck = Deck.new
-    @player = Player.new
-    @dealer = Dealer.new
-  end
+  CONSOLE_WIDTH = 80
+  INITIAL_FUNDS = 10
 
   def start
     display_welcome_message
+    set_up_game
+    wait_for_input
     loop do
       play_a_round
       break unless play_again?
@@ -209,26 +227,64 @@ class TOGame
 
   private
 
-  attr_reader :deck, :player, :dealer
+  attr_accessor :deck, :player, :dealer, :current_participant, :funds
 
   def clear
     system 'clear'
   end
 
   def display_welcome_message
-    puts 'Welcome to a game of Twenty One'
+    clear
+    puts 'Welcome to the Twenty One game'
     puts
+    puts '----- Basic Info -----'
+    puts "We will give you $#{INITIAL_FUNDS} to play with"
+    puts 'You can win and loose every round until you hit $0'
+    puts 'Of course you can decide to leave after every round'
+    puts
+    puts "Let's get started!"
+    puts
+  end
+
+  def set_up_game
+    self.deck = Deck.new
+    self.player = Player.new
+    self.dealer = Dealer.new
+    self.current_participant = player
+    self.funds = INITIAL_FUNDS
   end
 
   def play_a_round
     deal_cards
-    players_turn
+    show_flop
+    deal_cards
+    make_a_bet
     wait_for_input
+
+    current_participants_turn
+    wait_for_input
+
     unless player.busted?
-      dealers_turn
+      change_participant
+      current_participants_turn
       wait_for_input
+
+      change_participant
     end
+
     show_result
+  end
+
+  def change_participant
+    self.current_participant = if player?
+                                 dealer
+                               else
+                                 player
+                               end
+  end
+
+  def player?
+    current_participant == player
   end
 
   def play_again?
@@ -252,63 +308,54 @@ class TOGame
   end
 
   def deal_cards
-    deck.shuffle
-    player << deck.deal_a_card
     player << deck.deal_a_card
     dealer << deck.deal_a_card
   end
 
-  def players_turn
-    puts "Player's Turn"
-    puts
+  def show_flop
+    puts 'Here is the flop'
     player.show_hand
+    dealer.show_hand
+  end
+
+  def make_a_bet
+    puts 'I bet...'
+    puts
+  end
+
+  def current_participants_turn
+    display_turn_start
 
     loop do
-      answer = nil
-      puts 'Do you want to hit or stay?'
+      break if current_participant.busted? || current_participant.stays?
+      clear if player?
+      current_participant << deck.deal_a_card
+      current_participant.display_hits
+    end
 
-      loop do
-        puts 'Type h for hit and s for stay'
-        answer = gets.chomp.downcase
-        break if %w(h s hit stay).include? answer
+    display_turn_end
+  end
 
-        puts 'Invalid input!'
-        puts
-      end
-      clear
-
-      break player.stays if %(s stay).include? answer
-
-      player << deck.deal_a_card
-      player.hits
-
-      break player.display_busted if player.busted?
+  def display_turn_end
+    if current_participant.busted?
+      current_participant.display_busted
+    else
+      current_participant.display_stays
     end
   end
 
-  def dealers_turn
-    clear
-    puts "Dealer's Turn"
+  def display_turn_start
+    puts "#{current_participant.name}'s Turn"
     puts
-
-    dealer << deck.deal_a_card
-    dealer.show_hand
-
-    loop do
-      break dealer.stays if dealer.stay?
-      dealer << deck.deal_a_card
-      dealer.hits
-      break dealer.display_busted if dealer.busted?
-    end
+    current_participant.show_hand
   end
 
   def show_result
-    clear
-    puts '*' * 80
-    puts '*' + ' ' * 78 + '*'
-    puts '*' + round_result.center(78) + '*'
-    puts '*' + ' ' * 78 + '*'
-    puts '*' * 80
+    puts '*' * CONSOLE_WIDTH
+    puts "*#{' ' * CONSOLE_WIDTH}*"
+    puts "*#{round_result.center(CONSOLE_WIDTH - 2)}*"
+    puts "*#{' ' * CONSOLE_WIDTH}*"
+    puts '*' * CONSOLE_WIDTH
 
     player.show_hand
     dealer.show_hand
@@ -317,19 +364,34 @@ class TOGame
   def wait_for_input
     puts 'Type any key to continue...'
     gets
+    clear
   end
 
   def round_result
-    if player.busted?
-      "#{player.name} busted and lost"
-    elsif dealer.busted?
-      "The #{dealer.name} busted and #{player.name} wins the round"
-    elsif player > dealer
-      "#{player.name} wins with #{player.total_value} points to #{dealer.total_value} points"
-    elsif dealer > player
-      "#{dealer.name} wins with #{dealer.total_value} points to #{player.total_value} points"
+    if dealer.busted? || (player > dealer && !player.busted?)
+      player_won
+    elsif player.busted? || dealer > player
+      dealer_won
     else
       "It is a tie with #{player.total_value} points each"
+    end
+  end
+
+  def player_won
+    if dealer.busted?
+      "The #{dealer.name} busted and #{player.name} wins the round"
+    else
+      "#{player.name} wins with #{player.total_value} "\
+        "points to #{dealer.total_value} points"
+    end
+  end
+
+  def dealer_won
+    if player.busted?
+      "#{player.name} busted and lost"
+    else
+      "#{dealer.name} wins with #{dealer.total_value} "\
+        "points to #{player.total_value} points"
     end
   end
 
