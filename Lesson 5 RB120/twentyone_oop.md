@@ -82,29 +82,18 @@ show suit and value
   - the player can decide which dealer to play
     - each dealer has a different round buy in
 
-- each round he wins or looses his buy in
-- this is displayed at the end of the round
-- he can leave the table and take his money or stay every round
-
 - go over all classes and see if the methods in there make sense or if they need
   different names or go to different places
 - check encapsulation
 - run rubocop again
 
 ## Set up fund system for TO Game
-- the player has 10 in the beginning
-- after flop he can decided how much he wants to bet
- - the flop only shows him 1 of his cards and 1 of the dealers
-- after the round he either wins the amount extra, looses it or stays the same
 - he can decide to play another round or leave the table and cash in
-- after the game his earnings (win - initial) will be displayed
+ - when reaching zero or a number less then the min bet
+ - cash out immidiatley -> end the game
+ - display how much money is left when quitting
 
 extra
 - choose a dealer
 - each dealer has a different min bet
-
-
-update flop
-- only deal 1 card each in flop
-- only show one card and ?? for the other cards in show flow
 

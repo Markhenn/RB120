@@ -208,9 +208,63 @@ class Card
   end
 end
 
+class Funds
+  FUNDS_MAX = 100
+  FUNDS_MIN = 10
+
+  def initialize
+    set_funds
+  end
+
+  def set_funds
+    funds = nil
+    puts 'How much money would you like to bring to the table?'
+
+    loop do
+      puts "Please choose a whole number between #{FUNDS_MIN} and #{FUNDS_MAX}"
+      funds = gets.chomp.to_i
+
+      break if in_range?(funds)
+      puts
+    end
+    puts
+
+    self.funds = funds.to_i
+  end
+
+  def to_s
+    funds.to_s
+  end
+
+  def amount
+    funds
+  end
+
+  def add(bet)
+    self.funds = funds + bet
+  end
+
+  def deduct(bet)
+    self.funds = funds - bet
+  end
+
+  def broke?(min_bet)
+    funds < min_bet
+  end
+
+  private
+
+  attr_accessor :funds
+
+  def in_range?(funds)
+    funds.to_i >= FUNDS_MIN && funds.to_i <= FUNDS_MAX
+  end
+end
+
 class TOGame
   CONSOLE_WIDTH = 80
   INITIAL_FUNDS = 10
+  MINBET = 2
 
   def start
     display_welcome_message
@@ -227,7 +281,7 @@ class TOGame
 
   private
 
-  attr_accessor :deck, :player, :dealer, :current_participant, :funds
+  attr_accessor :deck, :player, :dealer, :current_participant, :funds, :bet, :result
 
   def clear
     system 'clear'
@@ -238,11 +292,12 @@ class TOGame
     puts 'Welcome to the Twenty One game'
     puts
     puts '----- Basic Info -----'
-    puts "We will give you $#{INITIAL_FUNDS} to play with"
-    puts 'You can win and loose every round until you hit $0'
+    puts 'You can decide how much money to bring to the table'
+    puts 'Each round you can win double or loose your whole bet'
+    puts 'When you have less left than the min bet left you loose'
     puts 'Of course you can decide to leave after every round'
     puts
-    puts "Let's get started!"
+    puts "Let's get started with setting up the game!"
     puts
   end
 
@@ -251,7 +306,14 @@ class TOGame
     self.player = Player.new
     self.dealer = Dealer.new
     self.current_participant = player
-    self.funds = INITIAL_FUNDS
+    # set dealer
+    self.funds = Funds.new
+  end
+
+  def show_funds
+    puts "------ #{player.name}'s funds ----"
+    puts "=> $#{funds}"
+    puts
   end
 
   def play_a_round
@@ -272,7 +334,15 @@ class TOGame
       change_participant
     end
 
+    determine_winner
     show_result
+    update_funds
+  end
+
+  def wait_for_input
+    puts 'Type any key to continue...'
+    gets
+    clear
   end
 
   def change_participant
@@ -319,8 +389,36 @@ class TOGame
   end
 
   def make_a_bet
-    puts 'I bet...'
+    show_funds
+    puts 'How much money would like to bet on the flop?'
+    puts 'Only whole numbers allowed!'
+
+    number = nil
+
+    loop do
+      number = gets.chomp
+      break if is_valid?(number)
+      puts
+    end
     puts
+
+    self.bet = number.to_i
+  end
+
+  def is_valid?(bet)
+    if !integer?(bet)
+      puts 'Please use only whole numbers for the bet'
+    elsif bet.to_i < MINBET
+      puts "The amount must be bigger than the min bet of #{MINBET}!"
+    elsif funds.amount - bet.to_i < 0
+      puts "The bet can't be higher than your available funds ($#{funds.amount})"
+    else
+      true
+    end
+  end
+
+  def integer?(number)
+    number.to_i.to_s == number
   end
 
   def current_participants_turn
@@ -350,10 +448,18 @@ class TOGame
     current_participant.show_hand
   end
 
+  def determine_winner
+    self.result = if dealer.busted? || (player > dealer && !player.busted?)
+                    :player_won
+                  elsif player.busted? || dealer > player
+                    :dealer_won
+                  end
+  end
+
   def show_result
     puts '*' * CONSOLE_WIDTH
     puts "*#{' ' * CONSOLE_WIDTH}*"
-    puts "*#{round_result.center(CONSOLE_WIDTH - 2)}*"
+    puts "*#{display_round_result.center(CONSOLE_WIDTH - 2)}*"
     puts "*#{' ' * CONSOLE_WIDTH}*"
     puts '*' * CONSOLE_WIDTH
 
@@ -361,23 +467,30 @@ class TOGame
     dealer.show_hand
   end
 
-  def wait_for_input
-    puts 'Type any key to continue...'
-    gets
-    clear
+  def update_funds
+    if result == :player_won
+      puts "#{player.name} wins $#{bet}"
+      funds.add(bet)
+    elsif result == :dealer_won
+      puts "#{player.name} looses $#{bet}"
+      funds.deduct(bet)
+    end
+    puts
+
+    show_funds
   end
 
-  def round_result
-    if dealer.busted? || (player > dealer && !player.busted?)
-      player_won
-    elsif player.busted? || dealer > player
-      dealer_won
+  def display_round_result
+    if result == :player_won
+      display_player_won
+    elsif result == :dealer_won
+      display_dealer_won
     else
       "It is a tie with #{player.total_value} points each"
     end
   end
 
-  def player_won
+  def display_player_won
     if dealer.busted?
       "The #{dealer.name} busted and #{player.name} wins the round"
     else
@@ -386,7 +499,7 @@ class TOGame
     end
   end
 
-  def dealer_won
+  def display_dealer_won
     if player.busted?
       "#{player.name} busted and lost"
     else
