@@ -181,6 +181,7 @@ class Dealer < Participant
       number = gets.chomp.to_i
       return number if TABLES.keys.include? number
 
+      puts
       puts 'That is not the number of a table! Sorry!'
       puts
     end
