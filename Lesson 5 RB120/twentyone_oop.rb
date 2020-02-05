@@ -2,10 +2,14 @@
 
 module Hand
   ACE_CORRECTION = 11
-  BUSTED_VALUE = 21
+  TWENTY_ONE = 21
 
   def busted?
-    total_value > BUSTED_VALUE
+    total_value > TWENTY_ONE
+  end
+
+  def hit_21?
+    total_value == TWENTY_ONE
   end
 
   def total_value
@@ -71,6 +75,11 @@ class Participant
     puts
   end
 
+  def display_hit_21
+    puts "#{name} hits 21!"
+    puts
+  end
+
   def reset
     @cards = []
   end
@@ -123,9 +132,15 @@ class Player < Participant
 end
 
 class Dealer < Participant
-  DEALER = %w(James Tony Alfred)
+  TABLES = {
+    1 => { name: 'Alfred', min_bet: 1 },
+    2 => { name: 'James', min_bet: 3 },
+    3 => { name: 'Tony', min_bet: 5 }
+  }
 
   include Hand
+
+  attr_reader :min_bet
 
   def stays?
     total_value >= 17
@@ -133,8 +148,33 @@ class Dealer < Participant
 
   private
 
+  attr_writer :min_bet
+
   def set_name
-    self.name = DEALER.sample
+    number = nil
+
+    puts 'Choose one of the following dealer to play with:'
+    TABLES.each do |idx, dealer|
+      puts "Table #{idx} with dealer #{dealer[:name]} "\
+        "and a minimum bet of #{dealer[:min_bet]}"
+    end
+    puts
+
+    loop do
+      puts 'Type the number of the table you want to play at'
+      number = gets.chomp.to_i
+      break if TABLES.keys.include? number
+
+      puts 'Invalid Answer! Sorry'
+      puts
+    end
+
+    self.name = TABLES[number][:name]
+    self.min_bet = TABLES[number][:min_bet]
+
+    puts
+    puts "You sit down at #{name}'s table"
+    puts
   end
 end
 
@@ -225,6 +265,7 @@ class Funds
       funds = gets.chomp.to_i
 
       break if in_range?(funds)
+      puts 'Invalid input!'
       puts
     end
     puts
@@ -264,7 +305,6 @@ end
 class TOGame
   CONSOLE_WIDTH = 80
   INITIAL_FUNDS = 10
-  MINBET = 2
 
   def start
     display_welcome_message
@@ -272,6 +312,7 @@ class TOGame
     wait_for_input
     loop do
       play_a_round
+      wait_for_input
       break unless play_again?
       reset
       display_play_again_message
@@ -281,7 +322,7 @@ class TOGame
 
   private
 
-  attr_accessor :deck, :player, :dealer, :current_participant, :funds, :bet, :result
+  attr_accessor :deck, :player, :dealer, :current_p, :funds, :bet, :result
 
   def clear
     system 'clear'
@@ -289,13 +330,12 @@ class TOGame
 
   def display_welcome_message
     clear
-    puts 'Welcome to the Twenty One game'
+    puts '----- Welcome to a game of Twenty One -----'
     puts
-    puts '----- Basic Info -----'
-    puts 'You can decide how much money to bring to the table'
-    puts 'Each round you can win double or loose your whole bet'
-    puts 'When you have less left than the min bet left you loose'
-    puts 'Of course you can decide to leave after every round'
+    puts 'You can decide how much money to bring to the table.'
+    puts 'Each round you can win double or loose your whole bet.'
+    puts 'When you have less money left than the min bet left the game ends.'
+    puts 'Of course you can decide to leave after every round.'
     puts
     puts "Let's get started with setting up the game!"
     puts
@@ -305,7 +345,7 @@ class TOGame
     self.deck = Deck.new
     self.player = Player.new
     self.dealer = Dealer.new
-    self.current_participant = player
+    self.current_p = player
     # set dealer
     self.funds = Funds.new
   end
@@ -346,7 +386,7 @@ class TOGame
   end
 
   def change_participant
-    self.current_participant = if player?
+    self.current_p = if player?
                                  dealer
                                else
                                  player
@@ -354,12 +394,18 @@ class TOGame
   end
 
   def player?
-    current_participant == player
+    current_p == player
   end
 
   def play_again?
+    return if funds.broke?(dealer.min_bet)
+
+    puts '----- Want to play again? -----'
+    puts "You have $#{funds} left to play"
+    puts "The minimum bet at #{dealer.name}'s table is $#{dealer.min_bet}"
     puts
-    puts "Type y if you want to play #{dealer.name} again"
+    puts "Type y if you want to play #{dealer.name} again "\
+      "anything else to end the game"
     answer = gets.chomp.downcase
     clear
 
@@ -391,6 +437,7 @@ class TOGame
   def make_a_bet
     show_funds
     puts 'How much money would like to bet on the flop?'
+    puts "The minimum bet is $#{dealer.min_bet}"
     puts 'Only whole numbers allowed!'
 
     number = nil
@@ -401,6 +448,8 @@ class TOGame
       puts
     end
     puts
+    puts "#{player.name} bets $#{number} on the flop"
+    puts
 
     self.bet = number.to_i
   end
@@ -408,8 +457,8 @@ class TOGame
   def is_valid?(bet)
     if !integer?(bet)
       puts 'Please use only whole numbers for the bet'
-    elsif bet.to_i < MINBET
-      puts "The amount must be bigger than the min bet of #{MINBET}!"
+    elsif bet.to_i < dealer.min_bet
+      puts "The amount must be bigger than the min bet of #{dealer.min_bet}!"
     elsif funds.amount - bet.to_i < 0
       puts "The bet can't be higher than your available funds ($#{funds.amount})"
     else
@@ -425,27 +474,29 @@ class TOGame
     display_turn_start
 
     loop do
-      break if current_participant.busted? || current_participant.stays?
+      break if current_p.busted? || current_p.hit_21? || current_p.stays?
       clear if player?
-      current_participant << deck.deal_a_card
-      current_participant.display_hits
+      current_p << deck.deal_a_card
+      current_p.display_hits
     end
 
     display_turn_end
   end
 
   def display_turn_end
-    if current_participant.busted?
-      current_participant.display_busted
+    if current_p.busted?
+      current_p.display_busted
+    elsif current_p.hit_21?
+      current_p.display_hit_21
     else
-      current_participant.display_stays
+      current_p.display_stays
     end
   end
 
   def display_turn_start
-    puts "#{current_participant.name}'s Turn"
+    puts "#{current_p.name}'s Turn"
     puts
-    current_participant.show_hand
+    current_p.show_hand
   end
 
   def determine_winner
@@ -458,9 +509,9 @@ class TOGame
 
   def show_result
     puts '*' * CONSOLE_WIDTH
-    puts "*#{' ' * CONSOLE_WIDTH}*"
+    puts "*#{' ' * (CONSOLE_WIDTH - 2)}*"
     puts "*#{display_round_result.center(CONSOLE_WIDTH - 2)}*"
-    puts "*#{' ' * CONSOLE_WIDTH}*"
+    puts "*#{' ' * (CONSOLE_WIDTH - 2)}*"
     puts '*' * CONSOLE_WIDTH
 
     player.show_hand
@@ -509,7 +560,14 @@ class TOGame
   end
 
   def goodbye_message
-    clear
+    puts '----- The game is over -----'
+    if funds.broke?(dealer.min_bet)
+      puts "The game ended because you had only $#{funds} left! This is less "\
+        "than the min bet of $#{dealer.min_bet} at #{dealer.name}'s table"
+    else
+      puts "You leave #{dealer.name}'s table and cash in $#{funds}"
+    end
+    puts
     puts 'Thank you for playing twentyone!'
   end
 end

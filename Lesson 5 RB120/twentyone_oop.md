@@ -78,22 +78,9 @@ show suit and value
 ---------------
 
 ## Make your code pretty
-- create a set up part
-  - the player can decide which dealer to play
-    - each dealer has a different round buy in
 
 - go over all classes and see if the methods in there make sense or if they need
   different names or go to different places
 - check encapsulation
 - run rubocop again
-
-## Set up fund system for TO Game
-- he can decide to play another round or leave the table and cash in
- - when reaching zero or a number less then the min bet
- - cash out immidiatley -> end the game
- - display how much money is left when quitting
-
-extra
-- choose a dealer
-- each dealer has a different min bet
 
