@@ -103,7 +103,7 @@ class Player < Participant
       answer = gets.chomp.downcase
       break answer if %w(h s hit stay).include? answer
 
-      puts 'Invalid input!'
+      puts 'Invalid input! Sorry!'
       puts
     end
     clear
@@ -154,30 +154,36 @@ class Dealer < Participant
   attr_writer :min_bet
 
   def set_name
-    number = nil
+    display_tables
 
+    table = choose_table
+
+    self.name = TABLES[table][:name]
+    self.min_bet = TABLES[table][:min_bet]
+
+    clear
+    puts "You sit down at #{name}'s table"
+    puts
+  end
+
+  def display_tables
     puts 'Choose one of the following dealer to play with:'
     TABLES.each do |idx, dealer|
       puts "Table #{idx} with dealer #{dealer[:name]} "\
         "and a minimum bet of #{dealer[:min_bet]}"
     end
     puts
+  end
 
+  def choose_table
     loop do
       puts 'Type the number of the table you want to play at'
       number = gets.chomp.to_i
-      break if TABLES.keys.include? number
+      return number if TABLES.keys.include? number
 
-      puts 'Invalid Answer! Sorry'
+      puts 'That is not the number of a table! Sorry!'
       puts
     end
-
-    self.name = TABLES[number][:name]
-    self.min_bet = TABLES[number][:min_bet]
-
-    clear
-    puts "You sit down at #{name}'s table"
-    puts
   end
 end
 
@@ -269,7 +275,7 @@ class Funds
       funds = gets.chomp.to_i
 
       break if in_range?(funds)
-      puts 'Invalid input!'
+      puts 'Invalid input for funds! Sorry!'
       puts
     end
     clear
@@ -283,6 +289,10 @@ class Funds
 
   def amount
     funds
+  end
+
+  def not_enough(bet)
+    funds - bet < 0
   end
 
   def add(bet)
@@ -381,10 +391,10 @@ class TOGame
 
   def change_participant
     self.current_p = if player?
-                                 dealer
-                               else
-                                 player
-                               end
+                       dealer
+                     else
+                       player
+                     end
   end
 
   def player?
@@ -423,12 +433,14 @@ class TOGame
   end
 
   def valid?(bet)
+    puts
     if !integer?(bet)
       puts 'Please use only whole numbers for the bet'
     elsif bet.to_i < dealer.min_bet
       puts "The amount must be bigger than the min bet of #{dealer.min_bet}!"
-    elsif funds.amount - bet.to_i < 0
-      puts "The bet can't be higher than your available funds ($#{funds.amount})"
+    elsif funds.not_enough(bet.to_i)
+      puts "The bet can't be higher than your available funds "\
+        "of ($#{funds.amount})."
     else
       true
     end

@@ -77,10 +77,3 @@ show suit and value
 
 ---------------
 
-## Make your code pretty
-
-- go over all classes and see if the methods in there make sense or if they need
-  different names or go to different places
-- check encapsulation
-- run rubocop again
-
