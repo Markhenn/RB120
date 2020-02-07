@@ -77,3 +77,11 @@ show suit and value
 
 ---------------
 
+
+## Setting up that two cards are dealt and update rest
+- only show one for the dealer
+- don't calculate the value for the dealer
+
+
+
+

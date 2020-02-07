@@ -38,15 +38,20 @@ class Participant
     total_value
   end
 
-  def show_hand
+  def show_hand(flop=false)
     puts "----- #{name}'s Hand -----"
-    hand.each do |card|
-      puts "=> #{card}"
+
+    if flop
+      puts hand.first
+      puts '=> ??' if flop
+      puts "Total value => ??"
+    else
+      hand.each do |card|
+        puts "=> #{card}"
+      end
+
+      puts "Total value => #{total_value}"
     end
-
-    puts '=> ??' if hand.size == 1
-
-    puts "Total value => #{total_value}"
     puts
   end
 
@@ -101,18 +106,14 @@ class Player < Participant
     loop do
       puts 'Type h for hit and s for stay'
       answer = gets.chomp.downcase
-      break answer if %w(h s hit stay).include? answer
+      break answer if %w(h s hit stay).include?(answer)
 
       puts 'Invalid input! Sorry!'
       puts
     end
     clear
 
-    if %(s stay).include? answer
-      true
-    else
-      false
-    end
+    %(s stay).include?(answer)
   end
 
   private
@@ -179,7 +180,7 @@ class Dealer < Participant
     loop do
       puts 'Type the number of the table you want to play at'
       number = gets.chomp.to_i
-      return number if TABLES.keys.include? number
+      return number if TABLES.keys.include?(number)
 
       puts
       puts 'That is not the number of a table! Sorry!'
@@ -366,7 +367,6 @@ class TOGame
   def play_a_round
     deal_cards
     show_flop
-    deal_cards
     make_a_bet
     wait_for_input
 
@@ -391,11 +391,7 @@ class TOGame
   end
 
   def change_participant
-    self.current_p = if player?
-                       dealer
-                     else
-                       player
-                     end
+    self.current_p = player? ? dealer : player
   end
 
   def player?
@@ -403,14 +399,16 @@ class TOGame
   end
 
   def deal_cards
-    player << deck.deal_a_card
-    dealer << deck.deal_a_card
+    2.times do
+      player << deck.deal_a_card
+      dealer << deck.deal_a_card
+    end
   end
 
   def show_flop
     puts 'Here is the flop'
     player.show_hand
-    dealer.show_hand
+    dealer.show_hand(true)
   end
 
   def make_a_bet
@@ -519,9 +517,9 @@ class TOGame
   end
 
   def display_round_result
-    if result == :player_won
+    if player_won?
       display_player_won
-    elsif result == :dealer_won
+    elsif dealer_won?
       display_dealer_won
     else
       "It is a tie with #{player.total_value} points each"
